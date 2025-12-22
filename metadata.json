@@ -1,0 +1,7 @@
+{
+  "name": "dadonate",
+  "description": "A premium donation platform for content creators featuring QR code payments, supporting global banks and e-wallets with a signature maroon and gold aesthetic.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
