@@ -30,6 +30,9 @@ const App: React.FC = () => {
     return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
   
+  const [userCurrencyCode, setUserCurrencyCode] = useState<string>('USD');
+  const [creatorBalance, setCreatorBalance] = useState<number>(1450.00);
+
   const [accessibility, setAccessibility] = useState<AccessibilitySettings>(() => {
     const saved = localStorage.getItem('dadonate_access');
     return saved ? JSON.parse(saved) : { highContrast: false, dyslexicFont: false, autoRead: false, fontSize: 'standard' };
@@ -66,56 +69,12 @@ const App: React.FC = () => {
   const [donorName, setDonorName] = useState("anonymous supporter");
   const [selectedProvider, setSelectedProvider] = useState(PAYMENT_PROVIDERS.eWallets[0]);
   const [profileTab, setProfileTab] = useState<'feed' | 'about' | 'tiers'>('feed');
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [dashTab, setDashTab] = useState<'overview' | 'payouts' | 'security'>('overview');
+  const [newPassword, setNewPassword] = useState('');
+  const [isChangingPass, setIsChangingPass] = useState(false);
 
-  // Platform donation state
   const [platformDonationAmount, setPlatformDonationAmount] = useState<number>(50);
   const [showPlatformQR, setShowPlatformQR] = useState(false);
-
-  // Email update states
-  const [editingEmail, setEditingEmail] = useState(false);
-  const [newEmailValue, setNewEmailValue] = useState('');
-  const [isResending, setIsResending] = useState(false);
-
-  // Password change states
-  const [newPassword, setNewPassword] = useState('');
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
-
-  const passwordRequirements = useMemo(() => {
-    return {
-      length: newPassword.length >= 8,
-      upper: /[A-Z]/.test(newPassword),
-      lower: /[a-z]/.test(newPassword),
-      number: /[0-9]/.test(newPassword),
-      special: /[^A-Za-z0-9]/.test(newPassword),
-    };
-  }, [newPassword]);
-
-  const passwordStrength = Object.values(passwordRequirements).filter(Boolean).length;
-  const isNewPasswordValid = passwordStrength === 5;
-
-  // Verification process states
-  const [isUploading, setIsUploading] = useState(false);
-  const [showVerificationForm, setShowVerificationForm] = useState(false);
-
-  // Payment Management states
-  const [showAddMethod, setShowAddMethod] = useState(false);
-  const [newMethodType, setNewMethodType] = useState<'bank' | 'e-wallet'>('bank');
-  const [newMethodProvider, setNewMethodProvider] = useState(PAYMENT_PROVIDERS.banks[0]);
-  const [newMethodNumber, setNewMethodNumber] = useState('');
-  const [newMethodName, setNewMethodName] = useState('');
-  const [newMethodLabel, setNewMethodLabel] = useState('');
-  const [methodToRemove, setMethodToRemove] = useState<string | null>(null);
-
-  // Withdrawal Modal states
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState<number>(0);
-  const [selectedPayoutMethodId, setSelectedPayoutMethodId] = useState<string | null>(null);
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-
-  const [userCurrencyCode, setUserCurrencyCode] = useState<string>('USD');
-  const [creatorBalance, setCreatorBalance] = useState<number>(1450.00);
 
   const t = TRANSLATIONS[language];
 
@@ -145,6 +104,27 @@ const App: React.FC = () => {
     return SUPPORTED_CURRENCIES.find(c => c.code === userCurrencyCode) || SUPPORTED_CURRENCIES[0];
   }, [userCurrencyCode]);
 
+  const passwordRequirements = useMemo(() => {
+    return [
+      { key: 'length', label: t.passwordRequirementLength, met: newPassword.length >= 8 },
+      { key: 'upper', label: t.passwordRequirementUpper, met: /[A-Z]/.test(newPassword) },
+      { key: 'lower', label: t.passwordRequirementLower, met: /[a-z]/.test(newPassword) },
+      { key: 'number', label: t.passwordRequirementNumber, met: /[0-9]/.test(newPassword) },
+      { key: 'special', label: t.passwordRequirementSpecial, met: /[^A-Za-z0-9]/.test(newPassword) },
+    ];
+  }, [newPassword, t]);
+
+  const strengthCount = passwordRequirements.filter(r => r.met).length;
+  const isNewPasswordValid = strengthCount === 5;
+  const strengthPercentage = (strengthCount / 5) * 100;
+  
+  const strengthLabel = useMemo(() => {
+    if (strengthCount === 0) return '';
+    if (strengthCount < 3) return 'Insecure Protocol';
+    if (strengthCount < 5) return 'Standard Protection';
+    return 'Omega Clearance';
+  }, [strengthCount]);
+
   const creators = useMemo(() => {
     return MOCK_CREATORS.map(c => ({
       ...c,
@@ -152,28 +132,11 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  const addActivity = (type: Activity['type'], title: string, description: string, icon: string) => {
-    const newActivity: Activity = {
-      id: `a_${Date.now()}`,
-      type,
-      title,
-      description,
-      timestamp: 'Just now',
-      icon
-    };
-    setActivities(prev => [newActivity, ...prev.slice(0, 9)]); // Keep last 10
-  };
-
   const handleCreatorClick = (creator: Creator) => {
     setSelectedCreator(creator);
     setView('creator-profile');
     setProfileTab('feed');
     window.scrollTo(0, 0);
-    
-    // Auto-read if enabled
-    if (accessibility.autoRead) {
-      setTimeout(() => readText(`Opening profile for ${creator.name}. Niche: ${creator.niche}. ${creator.bio}`), 1000);
-    }
   };
 
   const handleDonateStart = () => {
@@ -184,6 +147,7 @@ const App: React.FC = () => {
   const handleTierSelect = (tier: Tier) => {
     setDonationAmount(tier.amount);
     setSelectedTierId(tier.id);
+    setShowQR(false);
   };
 
   const handleAuthSuccess = (userData: User) => {
@@ -192,113 +156,21 @@ const App: React.FC = () => {
       paymentMethods: user.paymentMethods || [], 
       verificationStatus: user.verificationStatus || 'unverified' 
     });
-    addActivity('account', 'Account Session', `User ${userData.username} signed in.`, 'fa-right-to-bracket');
     setView('home');
-  };
-
-  const handleAddPaymentMethod = () => {
-    const newMethod: PaymentMethod = {
-      id: `pm_${Date.now()}`,
-      type: newMethodType,
-      provider: newMethodProvider,
-      accountNumber: newMethodNumber,
-      accountName: newMethodName || user.name,
-      label: newMethodLabel || `${newMethodProvider} ${newMethodType === 'bank' ? 'Account' : 'Wallet'}`
-    };
-    
-    setUser(prev => ({
-      ...prev,
-      paymentMethods: [...(prev.paymentMethods || []), newMethod]
-    }));
-    
-    addActivity('financial', 'Payment Method Added', `${newMethodProvider} (${newMethodType}) connected.`, 'fa-credit-card');
-    
-    setShowAddMethod(false);
-    setNewMethodNumber('');
-    setNewMethodName('');
-    setNewMethodLabel('');
-  };
-
-  const handleRemovePaymentMethod = (id: string) => {
-    const method = user.paymentMethods?.find(m => m.id === id);
-    setUser(prev => ({
-      ...prev,
-      paymentMethods: (prev.paymentMethods || []).filter(m => m.id !== id)
-    }));
-    addActivity('financial', 'Payment Method Removed', `${method?.label || 'Account'} disconnected.`, 'fa-trash-can');
-    setMethodToRemove(null);
-  };
-
-  const handleVerificationSubmit = () => {
-    setIsUploading(true);
-    setTimeout(() => {
-      setUser(prev => ({ ...prev, verificationStatus: 'pending' }));
-      setIsUploading(false);
-      setShowVerificationForm(false);
-      addActivity('security', 'ID Verification Initiated', 'Government ID submitted for review.', 'fa-address-card');
-      setTimeout(() => {
-        setUser(prev => ({ ...prev, verificationStatus: 'verified' }));
-        addActivity('security', 'Identity Verified', 'Full payout privileges enabled.', 'fa-badge-check');
-      }, 10000);
-    }, 2000);
-  };
-
-  const handleFinalWithdrawal = () => {
-    if (withdrawAmount <= 0 || withdrawAmount > creatorBalance || !selectedPayoutMethodId) return;
-    setIsWithdrawing(true);
-    setTimeout(() => {
-      setCreatorBalance(prev => prev - withdrawAmount);
-      setIsWithdrawing(false);
-      setShowWithdrawModal(false);
-      addActivity('financial', 'Withdrawal Executed', `${activeCurrency.symbol}${withdrawAmount} transferred to linked account.`, 'fa-money-bill-transfer');
-    }, 2000);
   };
 
   const handleChangePassword = () => {
     if (!isNewPasswordValid) return;
-    setIsChangingPassword(true);
+    setIsChangingPass(true);
     setTimeout(() => {
-      setIsChangingPassword(false);
-      setPasswordChangeSuccess(true);
       setNewPassword('');
-      addActivity('security', 'Password Changed', 'Account credentials were updated successfully.', 'fa-lock');
-      setTimeout(() => setPasswordChangeSuccess(false), 3000);
+      setIsChangingPass(false);
+      setActivities([
+        { id: Date.now().toString(), type: 'security', title: 'Password Changed', description: 'Your account security protocol was updated.', timestamp: 'Just now', icon: 'fa-key' },
+        ...activities
+      ]);
+      alert("Password updated successfully.");
     }, 1500);
-  };
-
-  const handleEmailUpdateStart = () => {
-    setNewEmailValue(user.email || '');
-    setEditingEmail(true);
-  };
-
-  const handleEmailUpdateSubmit = () => {
-    if (!newEmailValue || newEmailValue === user.email) {
-      setEditingEmail(false);
-      return;
-    }
-    // Simulate setting pending email
-    setUser(prev => ({
-      ...prev,
-      pendingEmail: newEmailValue,
-      emailVerified: false
-    }));
-    addActivity('security', 'Email Update Requested', `Request to change email to ${newEmailValue}.`, 'fa-envelope-circle-check');
-    setEditingEmail(false);
-  };
-
-  const handleResendVerification = () => {
-    setIsResending(true);
-    setTimeout(() => setIsResending(false), 2000);
-  };
-
-  const handleSimulateEmailVerification = () => {
-    setUser(prev => ({
-      ...prev,
-      email: prev.pendingEmail || prev.email,
-      pendingEmail: undefined,
-      emailVerified: true
-    }));
-    addActivity('security', 'Email Verified', 'New primary email confirmed.', 'fa-check-double');
   };
 
   const handleGenerateQR = async () => {
@@ -313,8 +185,7 @@ const App: React.FC = () => {
       setThankYouMessage(msg);
       setShowQR(true);
     } catch (error) {
-      console.error("QR Generation failed", error);
-      setThankYouMessage(`Thank you for supporting my creative work! Your ${donationAmount} ${selectedCreator.currency} makes a huge difference.`);
+      setThankYouMessage(`Thank you for supporting my work!`);
       setShowQR(true);
     } finally {
       setIsGenerating(false);
@@ -322,6 +193,7 @@ const App: React.FC = () => {
   };
 
   const handleGeneratePlatformQR = () => {
+    if (platformDonationAmount < 1) return;
     setIsGenerating(true);
     setTimeout(() => {
       setShowPlatformQR(true);
@@ -329,73 +201,27 @@ const App: React.FC = () => {
     }, 1000);
   };
 
-  const decodeAudioData = async (data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> => {
-    const dataInt16 = new Int16Array(data.buffer);
-    const frameCount = dataInt16.length / numChannels;
-    const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-    for (let channel = 0; channel < numChannels; channel++) {
-      const channelData = buffer.getChannelData(channel);
-      for (let i = 0; i < frameCount; i++) {
-        channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-      }
-    }
-    return buffer;
-  };
-
-  const readText = async (text: string) => {
-    if (isSpeaking) return;
-    setIsSpeaking(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Speak this text clearly: ${text}` }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-        },
-      });
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-        const binaryString = atob(base64Audio);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-        const audioBuffer = await decodeAudioData(bytes, audioCtx, 24000, 1);
-        const source = audioCtx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioCtx.destination);
-        source.onended = () => setIsSpeaking(false);
-        source.start();
-      }
-    } catch (e) {
-      console.error(e);
-      setIsSpeaking(false);
-    }
-  };
-
   const renderHome = () => (
-    <div className="animate-fade-in">
-      <section className="bg-white dark:bg-[#050505] pt-32 pb-48 px-6 border-b-2 border-black dark:border-gold relative overflow-hidden">
+    <div className="animate-fade-in overflow-hidden">
+      <section className="bg-white dark:bg-[#050505] pt-16 pb-24 md:pt-32 md:pb-48 px-4 md:px-6 border-b border-black/10 dark:border-gold/20 relative overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center relative z-10">
-          <div className="badge mb-8 scale-125">{t.livelihoodStandard}</div>
-          <h1 className="text-7xl md:text-9xl font-black uppercase tracking-tighter mb-10 leading-[0.85] animate-slide-up">
-            Secure <br/> <span className="text-maroon dark:text-gold italic">Livelihood</span> <br/> Direct
+          <div className="badge mb-8 scale-110 md:scale-125 whitespace-normal max-w-xs">{t.livelihoodStandard}</div>
+          <h1 className="text-4xl sm:text-7xl md:text-8xl font-black uppercase tracking-tighter mb-10 leading-[1] animate-slide-up break-words w-full">
+            Secure <br/> <span className="text-maroon dark:text-gold font-bold">Livelihood</span> <br/> Direct
           </h1>
-          <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 max-w-2xl mb-16 font-bold uppercase tracking-tight leading-relaxed">
+          <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 max-w-2xl mb-16 font-bold uppercase tracking-widest leading-relaxed px-4">
             {t.heroSubtitle}
           </p>
-          <div className="flex flex-wrap justify-center gap-6">
+          <div className="flex flex-wrap justify-center gap-4 md:gap-6 w-full px-4">
             <button 
               onClick={() => user.isLoggedIn ? setView('dashboard') : setView('login')}
-              className="px-12 py-5 bg-maroon text-gold font-black text-sm uppercase tracking-[0.2em] border-premium shadow-flat hover:shadow-flat-lg transition-all btn-press"
+              className="flex-1 sm:flex-none px-6 py-4 md:px-12 md:py-5 bg-maroon text-gold font-bold text-xs md:text-sm uppercase tracking-[0.2em] border-premium btn-press"
             >
               {t.startCreating}
             </button>
             <button 
               onClick={() => setView('fund-platform')}
-              className="px-12 py-5 bg-white dark:bg-black text-black dark:text-white border-premium shadow-flat hover:shadow-flat-lg transition-all btn-press font-black text-sm uppercase tracking-[0.2em]"
+              className="flex-1 sm:flex-none px-6 py-4 md:px-12 md:py-5 bg-white dark:bg-black text-black dark:text-white border-premium btn-press font-bold text-xs md:text-sm uppercase tracking-[0.2em]"
             >
               {t.fundPlatform}
             </button>
@@ -403,53 +229,45 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-40">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
+      <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-40">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-32 items-center">
           <div className="flex flex-col items-start">
             <div className="badge mb-6">Empowerment for All</div>
-            <h2 className="text-5xl md:text-7xl font-black mb-10 uppercase tracking-tighter leading-[0.9]">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black mb-10 uppercase tracking-tighter leading-[1] break-words">
               {t.mandatoryTitle}
             </h2>
-            <p className="text-lg text-gray-500 dark:text-gray-400 mb-12 leading-relaxed font-bold uppercase tracking-tight max-w-lg">
+            <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 mb-12 leading-relaxed font-bold uppercase tracking-tight max-w-lg">
               {t.mandatoryDesc}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
               {[t.freelancer, t.athlete, t.lowIncomeWorker, t.housewife, t.retiredProfessional, t.studentLabel].map(label => (
-                <div key={label} className="flex items-center gap-4 p-5 bg-gray-50 dark:bg-[#0A0A0A] border-premium shadow-flat hover:translate-x-1 transition-transform">
-                  <div className="w-2 h-2 bg-maroon dark:bg-gold shrink-0"></div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+                <div key={label} className="flex items-center gap-4 p-4 md:p-6 bg-white dark:bg-[#0A0A0A] border-premium hover:border-maroon dark:hover:border-gold transition-colors">
+                  <div className="w-1.5 h-1.5 bg-maroon dark:bg-gold shrink-0"></div>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.1em]">{label}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div className="bg-maroon text-gold p-16 border-premium shadow-flat-lg flex flex-col items-center justify-center text-center relative overflow-hidden group">
-            <div className="absolute inset-0 opacity-10 flex items-center justify-center pointer-events-none group-hover:scale-110 transition-transform duration-700">
-               <i className="fas fa-landmark text-[20rem]"></i>
-            </div>
-            <div className="w-24 h-24 bg-gold text-maroon border-2 border-black flex items-center justify-center text-5xl mb-12 shadow-flat relative z-10">
+          <div className="bg-maroon text-gold p-8 md:p-20 border-premium flex flex-col items-center justify-center text-center relative overflow-hidden">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-gold text-maroon border border-black flex items-center justify-center text-3xl md:text-4xl mb-10 relative z-10">
               <i className="fas fa-hand-holding-dollar"></i>
             </div>
-            <h3 className="text-4xl font-black mb-6 uppercase tracking-tighter leading-none relative z-10">Weekly Sustainability</h3>
-            <p className="text-lg text-gold/80 mb-12 max-w-sm font-bold uppercase leading-tight tracking-tighter relative z-10">Automatic $200 weekly allowance for every verified user in the ecosystem.</p>
-            <div className="flex flex-col gap-4 w-full relative z-10">
-              <div className="px-10 py-4 bg-gold text-maroon border-2 border-black font-black text-xs uppercase tracking-[0.3em] shadow-flat">Lifetime Guaranteed</div>
-            </div>
+            <h3 className="text-2xl md:text-3xl font-black mb-6 uppercase tracking-tighter leading-none relative z-10">Weekly Sustainability</h3>
+            <p className="text-sm md:text-base text-gold/80 mb-12 max-w-sm font-bold uppercase leading-relaxed tracking-wider relative z-10">Automatic $200 weekly allowance for every verified user in the ecosystem.</p>
+            <div className="px-6 py-4 bg-gold text-maroon border border-black font-black text-[10px] uppercase tracking-[0.3em] relative z-10 w-full">Lifetime Guaranteed</div>
           </div>
         </div>
       </section>
 
-      <section className="bg-gray-50 dark:bg-[#0A0A0A] py-40 px-6 border-y-2 border-black dark:border-gold">
+      <section className="bg-white dark:bg-[#0A0A0A] py-20 md:py-40 px-4 md:px-6 border-y border-black/10 dark:border-gold/20">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-20 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
+          <div className="mb-12 md:mb-20 flex flex-col md:row justify-between items-start md:items-end gap-10">
             <div>
               <div className="badge mb-4">Discovery</div>
-              <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none">Community <br/> Leaders</h2>
+              <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none">Community <br className="hidden md:block"/> Leaders</h2>
             </div>
-            <button className="text-xs font-black uppercase tracking-[0.3em] text-maroon dark:text-gold border-b-4 border-current pb-2 hover:opacity-70 transition-opacity">
-              {t.browseAll} →
-            </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
             {creators.map(creator => (
               <CreatorCard key={creator.id} creator={creator} onClick={handleCreatorClick} />
             ))}
@@ -460,84 +278,91 @@ const App: React.FC = () => {
   );
 
   const renderFundPlatform = () => (
-    <div className="max-w-7xl mx-auto px-6 py-32 animate-fade-in pb-64">
-      <div className="badge mb-10 scale-125">Direct Vision Support</div>
-      <h1 className="text-7xl md:text-9xl font-black uppercase tracking-tighter mb-16 leading-[0.85] italic">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32 animate-fade-in pb-48 md:pb-64">
+      <div className="badge mb-10 px-4 py-2 text-center w-full md:w-auto inline-block whitespace-normal leading-tight">
+        Direct Founder Support & Transparency
+      </div>
+      <h1 className="text-4xl sm:text-6xl md:text-8xl font-black uppercase tracking-tighter mb-16 leading-[1] break-words">
         {t.fundSubtitle}
       </h1>
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-24">
-        <div className="lg:col-span-7 space-y-16">
-          <p className="text-2xl text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-relaxed max-w-3xl border-l-8 border-maroon dark:border-gold pl-10 italic">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 md:gap-32">
+        <div className="lg:col-span-7 space-y-12 md:space-y-20">
+          <p className="text-xl md:text-2xl text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-relaxed max-w-3xl border-l-4 border-maroon dark:border-gold pl-6 md:pl-10">
             {t.fundDesc}
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div className="p-10 bg-gray-50 dark:bg-black border-premium shadow-flat">
-               <div className="w-12 h-12 bg-maroon text-gold border-2 border-black flex items-center justify-center text-xl mb-8 shadow-flat">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12">
+            <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
+               <div className="w-10 h-10 bg-maroon text-gold flex items-center justify-center text-lg mb-8">
                  <i className="fas fa-crown"></i>
                </div>
-               <h4 className="text-xl font-black uppercase tracking-tighter mb-4 italic">{t.globalPool}</h4>
-               <p className="text-[10px] font-bold text-gray-500 uppercase leading-relaxed tracking-widest">{t.poolDesc}</p>
-               <div className="mt-8 pt-6 border-t-2 border-black/5 dark:border-gold/20 flex items-end gap-4">
-                 <span className="text-3xl font-black text-maroon dark:text-gold">Direct</span>
-                 <span className="text-[8px] font-black uppercase tracking-widest mb-1 opacity-50">Funding Path</span>
-               </div>
+               <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.globalPool}</h4>
+               <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.poolDesc}</p>
             </div>
-            <div className="p-10 bg-gray-50 dark:bg-black border-premium shadow-flat">
-               <div className="w-12 h-12 bg-black text-gold dark:bg-gold dark:text-black border-2 border-black flex items-center justify-center text-xl mb-8 shadow-flat">
+            <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
+               <div className="w-10 h-10 bg-black text-gold dark:bg-gold dark:text-black flex items-center justify-center text-lg mb-8 border border-black dark:border-none">
                  <i className="fas fa-code-branch"></i>
                </div>
-               <h4 className="text-xl font-black uppercase tracking-tighter mb-4 italic">{t.infrastructure}</h4>
-               <p className="text-[10px] font-bold text-gray-500 uppercase leading-relaxed tracking-widest">{t.infraDesc}</p>
-               <div className="mt-8 pt-6 border-t-2 border-black/5 dark:border-gold/20 flex items-end gap-4">
-                 <span className="text-3xl font-black">Maintenance</span>
-                 <span className="text-[8px] font-black uppercase tracking-widest mb-1 opacity-50">Focused</span>
-               </div>
+               <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.infrastructure}</h4>
+               <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.infraDesc}</p>
             </div>
           </div>
           
-          <div className="p-12 bg-maroon text-gold border-premium shadow-flat">
-            <h4 className="text-2xl font-black uppercase tracking-tighter mb-4">A Note from the Founders</h4>
-            <p className="text-sm font-bold uppercase tracking-tight leading-relaxed opacity-80">
-              "We believe that independence is the cornerstone of creativity. By funding dadonate directly, you bypass corporate agendas and invest in a platform built for and by creators. Your support ensures that our owners and developers can continue building a world where livelihood is guaranteed for everyone."
+          <div className="p-8 md:p-16 bg-maroon text-gold border-premium">
+            <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-8 border-b border-gold/20 pb-6">Integrity Split</h4>
+            <div className="grid grid-cols-2 gap-8 mb-10">
+              <div>
+                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Founder Livelihood</div>
+                <div className="text-3xl md:text-5xl font-black tracking-tighter">50.0%</div>
+              </div>
+              <div>
+                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Technical Reserve</div>
+                <div className="text-3xl md:text-5xl font-black tracking-tighter">50.0%</div>
+              </div>
+            </div>
+            <p className="text-xs md:text-sm font-bold uppercase tracking-wide leading-relaxed opacity-80">
+              "Contributions are split exactly 50/50: half supports my life's work, half funds the infrastructure. Transparency is our baseline."
             </p>
           </div>
         </div>
 
         <div className="lg:col-span-5">
-          <div className="bg-white dark:bg-[#0A0A0A] border-premium shadow-flat-lg p-16 sticky top-24">
-            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12 italic border-b-4 border-black dark:border-gold pb-4">{t.supportEcosystem}</h3>
+          <div className="bg-white dark:bg-[#0A0A0A] border-premium p-8 md:p-12 sticky top-24">
+            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-10 border-b-2 border-black dark:border-gold pb-4">{t.supportEcosystem}</h3>
             
-            <div className="grid grid-cols-1 gap-6 mb-12">
-               {[25, 100, 500].map(amount => (
+            <div className="grid grid-cols-4 gap-3 md:gap-4 mb-10">
+               {[1, 2, 5, 10, 20, 50, 100].map(amount => (
                  <button 
                   key={amount}
                   onClick={() => { setPlatformDonationAmount(amount); setShowPlatformQR(false); }}
-                  className={`p-6 border-premium transition-all flex items-center justify-between font-black text-lg uppercase tracking-[0.2em] italic ${
-                    platformDonationAmount === amount && !showPlatformQR ? 'bg-maroon text-gold shadow-none translate-x-1 translate-y-1' : 'bg-white dark:bg-black shadow-flat hover:shadow-none'
+                  className={`p-3 md:p-4 border-premium transition-all flex items-center justify-center font-bold text-xs md:text-sm uppercase tracking-tight ${
+                    platformDonationAmount === amount && !showPlatformQR ? 'bg-maroon text-gold' : 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-900'
                   }`}
                  >
                    <span>${amount}</span>
-                   {platformDonationAmount === amount && !showPlatformQR && <i className="fas fa-check"></i>}
                  </button>
                ))}
                
-               <div className="relative">
+               <div className="col-span-4 relative mt-4">
                   <input 
                     type="number"
                     value={platformDonationAmount}
                     onChange={(e) => { setPlatformDonationAmount(Number(e.target.value)); setShowPlatformQR(false); }}
-                    className="w-full pl-16 pr-6 py-6 bg-gray-50 dark:bg-black border-premium outline-none font-black text-xl italic tracking-tighter uppercase focus:bg-maroon focus:text-gold transition-all"
+                    min={1}
+                    className="w-full pl-12 md:pl-14 pr-6 py-5 bg-gray-50 dark:bg-black border-premium outline-none font-black text-lg md:text-xl tracking-tighter uppercase focus:border-maroon dark:focus:border-gold transition-all"
                   />
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-lg text-maroon dark:text-gold">$</span>
                </div>
+               <p className="col-span-4 text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-4 text-center">
+                 Any amount. Clean split. Full impact.
+               </p>
             </div>
 
             {showPlatformQR ? (
               <div className="animate-fade-in">
                 <QRGenerator 
-                  value="founder-fund-ref" 
+                  value="founder-p2p-split" 
                   amount={platformDonationAmount} 
                   currency="USD" 
                   provider={PAYMENT_PROVIDERS.eWallets[0]} 
@@ -547,17 +372,13 @@ const App: React.FC = () => {
             ) : (
               <button 
                 onClick={handleGeneratePlatformQR}
-                disabled={isGenerating}
-                className="w-full py-8 bg-black text-gold dark:bg-gold dark:text-black font-black uppercase tracking-[0.5em] text-[10px] border-premium shadow-flat hover:shadow-none transition-all btn-press"
+                disabled={isGenerating || platformDonationAmount < 1}
+                className="w-full py-6 md:py-8 bg-black text-gold dark:bg-gold dark:text-black font-black uppercase tracking-[0.4em] text-[10px] border-premium hover:opacity-90 transition-all btn-press disabled:opacity-30"
               >
                 {isGenerating ? <i className="fas fa-spinner fa-spin mr-3"></i> : <i className="fas fa-qrcode mr-3"></i>} 
-                Finalize Support
+                Authorize Support
               </button>
             )}
-            
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center mt-8 italic leading-relaxed">
-              Donations are routed directly to the founders and maintenance pools. We appreciate your role in building this ecosystem.
-            </p>
           </div>
         </div>
       </div>
@@ -565,664 +386,327 @@ const App: React.FC = () => {
   );
 
   const renderDashboard = () => (
-    <div className="max-w-7xl mx-auto px-6 py-32 animate-fade-in pb-64">
-      {/* EMAIL CONFIRMATION WARNING */}
-      {!user.emailVerified && (
-        <div className="mb-12 p-8 bg-maroon text-gold border-premium shadow-flat flex flex-col md:flex-row justify-between items-center gap-6 animate-fade-in">
-          <div className="flex items-center gap-6">
-            <div className="w-12 h-12 bg-gold text-maroon border-2 border-black flex items-center justify-center text-xl shadow-flat shrink-0">
-               <i className="fas fa-envelope-circle-check"></i>
-            </div>
-            <div>
-              <h4 className="text-sm font-black uppercase tracking-[0.2em]">{t.pendingConfirmation}</h4>
-              <p className="text-[10px] font-bold uppercase opacity-80 mt-1">Please confirm your email address <strong>{user.pendingEmail || user.email}</strong> to activate full payouts.</p>
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <button 
-              onClick={handleResendVerification}
-              disabled={isResending}
-              className="px-6 py-3 bg-white text-maroon border-2 border-black font-black text-[10px] uppercase tracking-widest hover:bg-gold transition-all"
-            >
-              {isResending ? <i className="fas fa-spinner fa-spin"></i> : t.resendVerification}
-            </button>
-            <button 
-              onClick={handleSimulateEmailVerification}
-              className="px-6 py-3 bg-black text-gold border-2 border-gold font-black text-[10px] uppercase tracking-widest hover:bg-gray-800 transition-all"
-            >
-              Simulate Confirm Link Click
-            </button>
-          </div>
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-20 md:py-32 animate-fade-in">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 mb-20">
+        <div className="w-full">
+          <div className="badge mb-4">Command Center</div>
+          <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none break-words">Dashboard</h1>
         </div>
-      )}
-
-      <div className="badge mb-10 scale-125">Command Center</div>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-px bg-black dark:bg-gold border-premium shadow-flat-lg overflow-hidden">
-        <div className="lg:col-span-4 bg-white dark:bg-[#0A0A0A] p-16 md:p-24 flex flex-col items-center">
-          <div className="flex flex-col items-center text-center mb-16">
-            <div className="w-48 h-48 border-premium bg-maroon text-gold flex items-center justify-center text-7xl font-black shadow-flat rotate-[-3deg] mb-12 italic relative">
-              {user.name?.[0]?.toUpperCase() || 'U'}
-              {user.verificationStatus === 'verified' && (
-                <div className="absolute -bottom-4 -right-4 bg-gold text-maroon w-12 h-12 rounded-full border-4 border-black dark:border-gold flex items-center justify-center text-xl shadow-flat">
-                  <i className="fas fa-check"></i>
-                </div>
-              )}
-            </div>
-            <h2 className="text-4xl font-black mb-2 uppercase tracking-tighter leading-none italic">{user.name}</h2>
-            <div className="flex flex-col items-center gap-2 mt-4">
-              <p className="badge">Verified Livelihood</p>
-              <div className="flex gap-2">
-                <div className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 border-premium ${
-                  user.verificationStatus === 'verified' ? 'bg-green-500 text-white border-green-700' :
-                  user.verificationStatus === 'pending' ? 'bg-gold text-black border-gold-dark animate-pulse' :
-                  'bg-gray-200 text-gray-500'
-                }`}>
-                  ID: {t[user.verificationStatus || 'unverified']}
-                </div>
-                <div className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 border-premium ${
-                  user.emailVerified ? 'bg-green-500 text-white border-green-700' : 'bg-red-500 text-white border-red-700'
-                }`}>
-                  Email: {user.emailVerified ? 'Verified' : 'Pending'}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="w-full mt-8 p-6 bg-gray-50 dark:bg-black border-premium">
-             <h4 className="text-xs font-black uppercase tracking-widest mb-4 border-b border-black/10 dark:border-gold/20 pb-2">{t.identityVerification}</h4>
-             
-             {user.verificationStatus === 'unverified' && !showVerificationForm && (
-                <button 
-                  onClick={() => setShowVerificationForm(true)}
-                  className="w-full py-4 bg-maroon text-gold font-black uppercase text-[10px] tracking-widest border-premium btn-press"
-                >
-                  {t.submitVerification}
-                </button>
-             )}
-
-             {showVerificationForm && (
-               <div className="space-y-4 animate-fade-in">
-                  <p className="text-[10px] font-bold uppercase text-gray-500 leading-relaxed">{t.uploadDesc}</p>
-                  <div className="w-full h-32 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors">
-                     <i className="fas fa-cloud-upload-alt text-2xl text-gray-400 mb-2"></i>
-                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Drop ID Photo Here</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => setShowVerificationForm(false)}
-                      className="flex-1 py-3 bg-white border-premium text-black font-black text-[9px] uppercase tracking-widest"
-                    >
-                      {t.cancel}
-                    </button>
-                    <button 
-                      onClick={handleVerificationSubmit}
-                      disabled={isUploading}
-                      className="flex-1 py-3 bg-gold text-black border-premium font-black text-[9px] uppercase tracking-widest btn-press"
-                    >
-                      {isUploading ? <i className="fas fa-spinner fa-spin"></i> : t.submitVerification}
-                    </button>
-                  </div>
-               </div>
-             )}
-
-             {user.verificationStatus === 'pending' && (
-               <p className="text-[9px] font-bold text-maroon dark:text-gold italic">{t.verificationThanks}</p>
-             )}
-          </div>
-
-          <button 
-            onClick={() => setView('login')}
-            className="w-full py-6 mt-8 bg-black text-white font-black uppercase text-[11px] tracking-[0.5em] border-premium hover:bg-maroon transition-all btn-press"
-          >
-            {t.logout}
-          </button>
-        </div>
-
-        <div className="lg:col-span-8 bg-white dark:bg-[#0A0A0A] p-16 md:p-24 space-y-32 border-l-2 border-black/5 dark:border-gold/20">
-          <div>
-            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12 border-b-4 border-black dark:border-gold pb-4 italic">Sustainability Matrix</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="p-10 bg-gray-50 dark:bg-black border-premium shadow-flat group">
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] mb-6 block border-b border-black/5 pb-2">Community Pool</span>
-                <p className="text-6xl font-black text-maroon dark:text-gold tracking-tighter leading-none italic group-hover:scale-105 transition-transform origin-left">{activeCurrency.symbol}{creatorBalance.toFixed(2)}</p>
-                <button 
-                  onClick={() => {
-                    setWithdrawAmount(creatorBalance);
-                    if (user.paymentMethods && user.paymentMethods.length > 0) {
-                      setSelectedPayoutMethodId(user.paymentMethods[0].id);
-                    }
-                    setShowWithdrawModal(true);
-                  }}
-                  className="mt-10 text-[10px] font-black uppercase tracking-[0.5em] text-maroon dark:text-gold hover:translate-x-4 transition-transform inline-block disabled:opacity-30 disabled:hover:translate-x-0"
-                  disabled={!user.emailVerified}
-                >
-                  Execute Payout →
-                  {!user.emailVerified && <span className="block text-[8px] opacity-50">Email Verification Required</span>}
-                </button>
-              </div>
-              <div className="p-10 bg-maroon text-gold border-premium shadow-flat">
-                <div className="flex justify-between items-start mb-6">
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em] border-b border-gold/30 pb-2">Base Allowance</span>
-                  <div className="badge bg-white text-maroon border-none py-1 text-[8px] animate-pulse">ACTIVE</div>
-                </div>
-                <p className="text-6xl font-black tracking-tighter leading-none italic">$200.00</p>
-                <p className="text-[9px] font-black mt-10 uppercase tracking-[0.3em] opacity-50 italic">Automatic Weekly Disbursement</p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12 border-b-4 border-black dark:border-gold pb-4 italic">{t.securitySettings}</h3>
-            
-            <div className="space-y-12">
-              {/* EMAIL UPDATE SECTION */}
-              <div className="p-10 bg-gray-50 dark:bg-black border-premium shadow-flat">
-                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.email}</label>
-                 {editingEmail ? (
-                   <div className="space-y-4">
-                     <input 
-                       type="email"
-                       value={newEmailValue}
-                       onChange={(e) => setNewEmailValue(e.target.value)}
-                       className="w-full px-6 py-4 bg-white dark:bg-black border-premium outline-none font-black text-sm uppercase tracking-tight focus:bg-maroon focus:text-gold transition-all"
-                     />
-                     <div className="flex gap-4">
-                       <button onClick={() => setEditingEmail(false)} className="px-6 py-3 bg-white border-premium font-black text-[10px] uppercase">{t.cancel}</button>
-                       <button onClick={handleEmailUpdateSubmit} className="px-6 py-3 bg-maroon text-gold border-premium font-black text-[10px] uppercase">Update</button>
-                     </div>
-                   </div>
-                 ) : (
-                   <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm font-black uppercase tracking-tight">{user.email}</p>
-                        {user.pendingEmail && (
-                          <p className="text-[9px] font-bold text-maroon dark:text-gold mt-1 italic">Pending update to: {user.pendingEmail}</p>
-                        )}
-                      </div>
-                      <button onClick={handleEmailUpdateStart} className="text-[10px] font-black text-maroon dark:text-gold uppercase tracking-widest hover:underline">{t.updateEmail}</button>
-                   </div>
-                 )}
-              </div>
-
-              {/* PASSWORD UPDATE SECTION */}
-              <div className="p-10 bg-gray-50 dark:bg-black border-premium shadow-flat animate-fade-in">
-                <div className="max-w-md">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.newPassword}</label>
-                  <div className="flex flex-col gap-4">
-                    <input 
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter Secure Password"
-                      className="w-full px-6 py-4 bg-white dark:bg-black border-premium outline-none font-black text-sm uppercase tracking-tight focus:bg-maroon focus:text-gold transition-all"
-                    />
-                    
-                    {newPassword.length > 0 && (
-                      <div className="space-y-4 animate-fade-in">
-                        <div className="flex gap-1 h-1 w-full">
-                          {[1, 2, 3, 4, 5].map((level) => (
-                            <div 
-                              key={level} 
-                              className={`flex-1 h-full transition-colors duration-500 ${
-                                level <= passwordStrength ? 'bg-maroon dark:bg-gold' : 'bg-gray-200 dark:bg-gray-800'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
-                          {[
-                            { key: 'length', label: t.passwordRequirementLength },
-                            { key: 'upper', label: t.passwordRequirementUpper },
-                            { key: 'lower', label: t.passwordRequirementLower },
-                            { key: 'number', label: t.passwordRequirementNumber },
-                            { key: 'special', label: t.passwordRequirementSpecial },
-                          ].map((req) => (
-                            <div 
-                              key={req.key} 
-                              className={`flex items-center gap-2 text-[8px] font-black uppercase tracking-widest transition-colors ${
-                                (passwordRequirements as any)[req.key] ? 'text-maroon dark:text-gold' : 'text-gray-400'
-                              }`}
-                            >
-                              <i className={`fas ${(passwordRequirements as any)[req.key] ? 'fa-check-circle' : 'fa-circle-notch'}`}></i>
-                              {req.label}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <button 
-                      onClick={handleChangePassword}
-                      disabled={!isNewPasswordValid || isChangingPassword}
-                      className="mt-4 px-10 py-5 bg-black text-white dark:bg-gold dark:text-black font-black uppercase text-[10px] tracking-widest border-premium shadow-flat btn-press disabled:opacity-50"
-                    >
-                      {isChangingPassword ? <i className="fas fa-spinner fa-spin mr-2"></i> : t.changePassword}
-                    </button>
-
-                    {passwordChangeSuccess && (
-                      <p className="text-[9px] font-black text-green-500 uppercase tracking-widest mt-2">
-                        <i className="fas fa-check-circle mr-1"></i> Security Updated Successfully
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-end mb-12 border-b-4 border-black dark:border-gold pb-4">
-               <h3 className="text-3xl font-black uppercase tracking-tighter italic">{t.managePayments}</h3>
-               <button 
-                  onClick={() => setShowAddMethod(!showAddMethod)}
-                  className="px-6 py-2 bg-black text-white dark:bg-gold dark:text-black font-black uppercase text-[10px] tracking-widest border-premium btn-press"
-               >
-                  {showAddMethod ? t.cancel : t.addMethod}
-               </button>
-            </div>
-
-            {showAddMethod && (
-              <div className="mb-12 p-10 bg-gray-50 dark:bg-black border-premium shadow-flat animate-fade-in relative">
-                <div className="absolute top-4 right-4 text-[8px] font-black text-maroon dark:text-gold uppercase tracking-[0.2em]">
-                   <i className="fas fa-shield-halved mr-1"></i> Secure Connection
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.paymentMethod}</label>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => { setNewMethodType('bank'); setNewMethodProvider(PAYMENT_PROVIDERS.banks[0]); }}
-                        className={`flex-1 py-3 border-premium font-black text-[10px] uppercase tracking-widest transition-all ${newMethodType === 'bank' ? 'bg-maroon text-gold shadow-none' : 'bg-white dark:bg-black shadow-flat hover:shadow-none'}`}
-                      >
-                        {t.bankAccount}
-                      </button>
-                      <button 
-                        onClick={() => { setNewMethodType('e-wallet'); setNewMethodProvider(PAYMENT_PROVIDERS.eWallets[0]); }}
-                        className={`flex-1 py-3 border-premium font-black text-[10px] uppercase tracking-widest transition-all ${newMethodType === 'e-wallet' ? 'bg-maroon text-gold shadow-none' : 'bg-white dark:bg-black shadow-flat hover:shadow-none'}`}
-                      >
-                        {t.eWallet}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.selectProvider}</label>
-                    <select 
-                      value={newMethodProvider}
-                      onChange={(e) => setNewMethodProvider(e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-black border-premium outline-none font-black text-[10px] uppercase tracking-widest focus:bg-maroon focus:text-gold transition-colors"
-                    >
-                      {(newMethodType === 'bank' ? PAYMENT_PROVIDERS.banks : PAYMENT_PROVIDERS.eWallets).map(p => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.accountLabel}</label>
-                    <input 
-                      type="text"
-                      value={newMethodLabel}
-                      onChange={(e) => setNewMethodLabel(e.target.value)}
-                      placeholder="e.g. Personal Savings"
-                      className="w-full px-4 py-3 bg-white dark:bg-black border-premium outline-none font-black text-[10px] uppercase tracking-widest focus:bg-maroon focus:text-gold transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.accountNumber}</label>
-                    <input 
-                      type="text"
-                      value={newMethodNumber}
-                      onChange={(e) => setNewMethodNumber(e.target.value)}
-                      placeholder="e.g. 123456789"
-                      className="w-full px-4 py-3 bg-white dark:bg-black border-premium outline-none font-black text-[10px] uppercase tracking-widest focus:bg-maroon focus:text-gold transition-colors"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.accountName}</label>
-                    <input 
-                      type="text"
-                      value={newMethodName}
-                      onChange={(e) => setNewMethodName(e.target.value)}
-                      placeholder={user.name}
-                      className="w-full px-4 py-3 bg-white dark:bg-black border-premium outline-none font-black text-[10px] uppercase tracking-widest focus:bg-maroon focus:text-gold transition-colors"
-                    />
-                  </div>
-                </div>
-                <button 
-                   onClick={handleAddPaymentMethod}
-                   disabled={!newMethodNumber || !newMethodProvider}
-                   className="w-full py-4 bg-maroon text-gold font-black uppercase text-[11px] tracking-[0.3em] border-premium shadow-flat btn-press disabled:opacity-50"
-                >
-                  Confirm Payout Registration
-                </button>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {(user.paymentMethods || []).map(method => (
-                <div key={method.id} className="p-8 bg-white dark:bg-black border-premium shadow-flat flex flex-col justify-between group relative overflow-hidden">
-                  {methodToRemove === method.id ? (
-                    <div className="absolute inset-0 bg-maroon text-gold p-6 flex flex-col items-center justify-center text-center animate-fade-in z-10">
-                       <i className="fas fa-exclamation-triangle text-2xl mb-4"></i>
-                       <p className="text-[10px] font-black uppercase tracking-widest mb-6">Confirm Permanent Removal?</p>
-                       <div className="flex gap-4 w-full">
-                         <button 
-                           onClick={() => setMethodToRemove(null)}
-                           className="flex-1 py-2 bg-white text-maroon font-black text-[9px] uppercase tracking-widest border-premium shadow-flat hover:shadow-none transition-all"
-                         >
-                           Keep
-                         </button>
-                         <button 
-                           onClick={() => handleRemovePaymentMethod(method.id)}
-                           className="flex-1 py-2 bg-black text-gold font-black text-[9px] uppercase tracking-widest border-premium shadow-flat hover:shadow-none transition-all"
-                         >
-                           Remove
-                         </button>
-                       </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-start mb-6">
-                        <div>
-                          <span className="badge mb-2">{method.type}</span>
-                          <h4 className="text-xl font-black uppercase tracking-tight italic text-maroon dark:text-gold">{method.label}</h4>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">{method.provider}</p>
-                        </div>
-                        <div className="text-2xl text-maroon dark:text-gold opacity-30 group-hover:opacity-100 transition-opacity">
-                          <i className={`fas ${method.type === 'bank' ? 'fa-building-columns' : 'fa-wallet'}`}></i>
-                        </div>
-                      </div>
-                      <div className="pt-6 border-t border-black/5 dark:border-gold/20 flex justify-between items-end">
-                        <div>
-                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Account Number</p>
-                          <p className="text-sm font-black italic tracking-wider">{method.accountNumber}</p>
-                        </div>
-                        <button 
-                          onClick={() => setMethodToRemove(method.id)}
-                          className="text-[10px] font-black text-red-500 uppercase tracking-widest hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          {t.remove}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-              
-              <button 
-                onClick={() => {
-                  setShowAddMethod(true);
-                  setNewMethodType('bank');
-                  setNewMethodProvider(PAYMENT_PROVIDERS.banks[0]);
-                }}
-                className="p-8 border-2 border-dashed border-black/20 dark:border-gold/20 flex flex-col items-center justify-center text-gray-400 hover:text-black dark:hover:text-gold hover:border-black dark:hover:border-gold transition-all group"
-              >
-                <i className="fas fa-plus text-2xl mb-4 group-hover:scale-110 transition-transform"></i>
-                <span className="text-[10px] font-black uppercase tracking-widest">{t.addMethod}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* RECENT ACTIVITY SECTION */}
-          <div>
-            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12 border-b-4 border-black dark:border-gold pb-4 italic">{t.securityLog}</h3>
-            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-10 -mt-6 italic">{t.activityDesc}</p>
-            
-            <div className="space-y-4">
-              {activities.map((activity, idx) => (
-                <div key={activity.id} className="relative flex items-start gap-8 group">
-                  {/* Timeline bar */}
-                  {idx !== activities.length - 1 && (
-                    <div className="absolute left-6 top-12 bottom-[-16px] w-[2px] bg-black/5 dark:bg-gold/10"></div>
-                  )}
-                  
-                  <div className={`w-12 h-12 flex-shrink-0 border-premium flex items-center justify-center text-sm shadow-flat group-hover:scale-110 transition-transform z-10 ${
-                    activity.type === 'security' ? 'bg-maroon text-gold' : 
-                    activity.type === 'financial' ? 'bg-black text-gold dark:bg-gold dark:text-black' : 
-                    'bg-gray-100 text-maroon dark:bg-black dark:text-gold'
-                  }`}>
-                    <i className={`fas ${activity.icon}`}></i>
-                  </div>
-                  
-                  <div className="flex-grow p-8 bg-gray-50 dark:bg-black border-premium shadow-flat transition-all group-hover:shadow-flat-lg">
-                    <div className="flex flex-wrap justify-between items-start gap-4 mb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 bg-black/10 dark:bg-gold/20">
-                          {activity.type}
-                        </span>
-                        <h4 className="text-sm font-black uppercase tracking-tight italic">{activity.title}</h4>
-                      </div>
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">{activity.timestamp}</span>
-                    </div>
-                    <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest leading-relaxed">
-                      {activity.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Trust Index</span>
+           <div className={`w-full md:w-auto px-8 py-4 border-premium text-[10px] font-black uppercase tracking-[0.2em] text-center ${user.verificationStatus === 'verified' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gold text-maroon border-black'}`}>
+             {user.verificationStatus === 'verified' ? <><i className="fas fa-check-circle mr-2"></i> Verified Identity</> : <><i className="fas fa-clock mr-2"></i> Pending Trust</>}
+           </div>
         </div>
       </div>
+      
+      {/* Tabs */}
+      <div className="flex border-b border-black/10 dark:border-gold/20 mb-16 overflow-x-auto no-scrollbar">
+        {(['overview', 'payouts', 'security'] as const).map(tab => (
+          <button 
+            key={tab} 
+            onClick={() => setDashTab(tab)}
+            className={`px-8 py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all border-b-2 whitespace-nowrap ${dashTab === tab ? 'border-maroon dark:border-gold text-maroon dark:text-gold' : 'border-transparent text-gray-400 hover:text-black dark:hover:text-gold'}`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
 
-      {showWithdrawModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-[#0A0A0A] border-premium shadow-flat-lg w-full max-lg overflow-hidden">
-            <div className="bg-maroon p-10 text-center border-b-2 border-black">
-              <h2 className="text-4xl font-black text-gold tracking-tighter italic uppercase leading-none">{t.confirmWithdrawal}</h2>
-            </div>
-            <div className="p-10 space-y-8">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-tight leading-relaxed">{t.reviewDetails}</p>
-              
-              <div className="space-y-6">
-                <div className="group">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.withdrawAmount}</label>
-                  <div className="relative">
-                    <input 
-                      type="number"
-                      max={creatorBalance}
-                      min={0}
-                      value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(Math.min(creatorBalance, Math.max(0, Number(e.target.value))))}
-                      className="w-full pl-16 pr-6 py-4 bg-gray-50 dark:bg-black border-premium outline-none font-black text-3xl italic tracking-tighter"
-                    />
-                    <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-xl text-maroon dark:text-gold">{activeCurrency.symbol}</span>
-                  </div>
-                  <button 
-                    onClick={() => setWithdrawAmount(creatorBalance)}
-                    className="mt-2 text-[9px] font-black text-maroon dark:text-gold uppercase tracking-widest hover:underline"
-                  >
-                    Use Max Balance ({activeCurrency.symbol}{creatorBalance.toFixed(2)})
-                  </button>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 md:gap-16">
+        {dashTab === 'overview' && (
+          <>
+            <div className="lg:col-span-8 space-y-10 md:space-y-16 animate-fade-in">
+              <div className="bg-maroon text-gold p-10 md:p-16 border-premium flex flex-col md:flex-row justify-between items-center gap-10">
+                <div className="w-full">
+                  <span className="text-[11px] font-black uppercase tracking-[0.4em] block mb-6 opacity-70">Secured Reservoir</span>
+                  <h3 className="text-5xl md:text-8xl font-black tracking-tighter leading-none break-all">{creatorBalance.toLocaleString()} <span className="text-xl md:text-3xl opacity-60">{activeCurrency.code}</span></h3>
                 </div>
-
-                <div className="group">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.selectTarget}</label>
-                  <select 
-                    value={selectedPayoutMethodId || ''}
-                    onChange={(e) => setSelectedPayoutMethodId(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 dark:bg-black border-premium outline-none font-black text-sm uppercase tracking-tight focus:bg-maroon focus:text-gold transition-colors"
-                  >
-                    <option value="" disabled>-- Select Verified Account --</option>
-                    {(user.paymentMethods || []).map(m => (
-                      <option key={m.id} value={m.id}>{m.label} ({m.provider})</option>
-                    ))}
-                  </select>
+                <button className="w-full md:w-auto px-12 py-6 bg-gold text-maroon font-black uppercase tracking-[0.3em] text-[10px] border border-black transition-all btn-press">Initiate Payout</button>
+              </div>
+              <div className="bg-white dark:bg-[#0A0A0A] border-premium p-8 md:p-12">
+                <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-12 border-b-2 border-black/5 pb-6">Network Intelligence</h4>
+                <div className="space-y-8">
+                  {activities.map(activity => (
+                    <div key={activity.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-8 p-6 md:p-8 bg-gray-50 dark:bg-black border border-black/5 dark:border-gold/10">
+                      <div className="w-12 h-12 bg-white dark:bg-[#0F0F0F] border border-black/10 dark:border-gold/30 flex items-center justify-center text-maroon dark:text-gold text-xl shrink-0"><i className={`fas ${activity.icon}`}></i></div>
+                      <div className="flex-grow w-full">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                          <h5 className="text-sm font-black uppercase tracking-widest leading-none">{activity.title}</h5>
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{activity.timestamp}</span>
+                        </div>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.05em] mt-3 leading-relaxed">{activity.description}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
+            </div>
+            
+            <div className="lg:col-span-4 space-y-10 md:space-y-16">
+              <div className="bg-white dark:bg-[#0A0A0A] border-premium p-8 md:p-12">
+                <h4 className="text-[11px] font-black uppercase tracking-[0.4em] mb-10">Linked Gates</h4>
+                <div className="space-y-5 mb-10">
+                  {user.paymentMethods?.map(pm => (
+                    <div key={pm.id} className="p-5 border border-black/10 dark:border-gold/30 bg-gray-50 dark:bg-black flex items-center justify-between gap-6">
+                      <div className="flex items-center gap-5 min-w-0">
+                        <i className={`fas ${pm.type === 'bank' ? 'fa-building-columns' : 'fa-wallet'} text-maroon dark:text-gold shrink-0`}></i>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-widest truncate">{pm.label}</p>
+                          <p className="text-[10px] font-bold text-gray-400 truncate opacity-60">{pm.provider} • {pm.accountNumber}</p>
+                        </div>
+                      </div>
+                      <button className="text-[9px] font-black text-maroon dark:text-gold uppercase hover:opacity-70 transition-opacity shrink-0">Edit</button>
+                    </div>
+                  ))}
+                </div>
+                <button className="w-full py-6 border border-dashed border-black/30 dark:border-gold/40 font-black text-[9px] uppercase tracking-[0.2em] text-gray-400 hover:border-maroon hover:text-maroon dark:hover:border-gold dark:hover:text-gold transition-all">Connect New Gate</button>
+              </div>
+              
+              <div className="bg-maroon/5 dark:bg-gold/5 p-10 border border-maroon/20 dark:border-gold/20">
+                <h4 className="text-[10px] font-black uppercase tracking-widest mb-6 text-maroon dark:text-gold">Sustainability Logic</h4>
+                <p className="text-[11px] font-medium text-gray-600 dark:text-gray-400 uppercase leading-relaxed tracking-wider mb-8">
+                  Mandatory weekly livelihood credit ($200) initiates automatically every Monday at 00:00 UTC.
+                </p>
+                <div className="text-[9px] font-bold text-maroon/40 dark:text-gold/40 uppercase tracking-[0.3em] pt-6 border-t border-black/5 dark:border-gold/10">
+                   Auto-Clearance Enabled
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
-              <div className="flex gap-4 pt-6 border-t border-black/5">
+        {dashTab === 'security' && (
+          <div className="lg:col-span-12 max-w-2xl mx-auto w-full animate-fade-in">
+            <div className="bg-white dark:bg-[#0A0A0A] border-premium p-10 md:p-16">
+              <h4 className="text-2xl font-black uppercase tracking-tighter mb-4">{t.securitySettings || 'Security Protocol'}</h4>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-12">{t.activityDesc || 'Update your authentication keys.'}</p>
+              
+              <div className="space-y-12">
+                <div className="group">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">{t.newPassword}</label>
+                  <input 
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-5 py-4 bg-gray-50 dark:bg-zinc-900 border-b border-black/10 dark:border-gold/20 focus:border-maroon dark:focus:border-gold transition-all outline-none font-bold text-sm uppercase tracking-tight"
+                  />
+                  
+                  {/* Real-time Validation for Password Change */}
+                  {newPassword.length > 0 && (
+                    <div className="mt-8 space-y-6 animate-fade-in">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-maroon dark:text-gold">
+                          {strengthLabel}
+                        </span>
+                        <span className="text-[9px] font-black text-gray-300">
+                          {Math.round(strengthPercentage)}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-gray-100 dark:bg-zinc-800 border border-black/5">
+                        <div 
+                          className={`h-full transition-all duration-500 ${
+                            strengthPercentage < 60 ? 'bg-red-500' : strengthPercentage < 100 ? 'bg-gold' : 'bg-green-600'
+                          }`}
+                          style={{ width: `${strengthPercentage}%` }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {passwordRequirements.map(req => (
+                          <div key={req.key} className="flex items-center gap-3">
+                            <div className={`w-5 h-5 border flex items-center justify-center transition-all ${
+                              req.met ? 'bg-maroon dark:bg-gold border-maroon dark:border-gold' : 'border-gray-200 dark:border-zinc-700'
+                            }`}>
+                              {req.met && <i className="fas fa-check text-[10px] text-white dark:text-black"></i>}
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${
+                              req.met ? 'text-black dark:text-white' : 'text-gray-300'
+                            }`}>
+                              {req.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <button 
-                  onClick={() => setShowWithdrawModal(false)}
-                  disabled={isWithdrawing}
-                  className="flex-1 py-4 bg-white dark:bg-black border-premium text-black dark:text-white font-black uppercase text-[10px] tracking-widest hover:bg-gray-100 transition-all shadow-flat hover:shadow-none"
+                  onClick={handleChangePassword}
+                  disabled={!isNewPasswordValid || isChangingPass}
+                  className="w-full py-6 bg-maroon text-gold font-black border border-black uppercase tracking-[0.5em] text-[10px] transition-all btn-press disabled:opacity-30"
                 >
-                  {t.cancel}
-                </button>
-                <button 
-                  disabled={!selectedPayoutMethodId || withdrawAmount <= 0 || isWithdrawing}
-                  onClick={handleFinalWithdrawal}
-                  className="flex-1 py-4 bg-maroon text-gold border-premium font-black uppercase text-[10px] tracking-widest btn-press disabled:opacity-50"
-                >
-                  {isWithdrawing ? <i className="fas fa-spinner fa-spin"></i> : t.proceed}
+                  {isChangingPass ? <i className="fas fa-spinner fa-spin mr-3"></i> : <i className="fas fa-shield-alt mr-3"></i>}
+                  {t.changePassword}
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+        
+        {dashTab === 'payouts' && (
+          <div className="lg:col-span-12 animate-fade-in">
+            <div className="bg-white dark:bg-[#0A0A0A] border-premium p-10 md:p-16">
+              <h4 className="text-2xl font-black uppercase tracking-tighter mb-12">Payout History</h4>
+              <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-black/5 dark:border-gold/10">
+                <i className="fas fa-receipt text-5xl text-gray-200 dark:text-zinc-800 mb-6"></i>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">No recent payout clearance found.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 
   const renderCreatorProfile = () => {
     if (!selectedCreator) return null;
     const isVerified = selectedCreator.verificationStatus === 'verified';
+
     return (
-      <div className="animate-fade-in bg-white dark:bg-[#050505]">
-        <div className="h-[40rem] relative border-b-2 border-black dark:border-gold overflow-hidden">
-          <img src={selectedCreator.coverImage} className="w-full h-full object-cover grayscale opacity-30 scale-105" alt="cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-          <div className="absolute inset-0 flex flex-col justify-end p-12 md:p-24">
-            <div className="max-w-7xl mx-auto w-full flex flex-col md:flex-row items-end gap-12">
-              <div className="w-48 h-48 border-premium bg-white dark:bg-black flex-shrink-0 shadow-flat-lg overflow-hidden rotate-[-2deg] relative">
-                <img src={selectedCreator.avatar} className="w-full h-full object-cover" alt="avatar" />
-                {isVerified && (
-                  <div className="absolute top-2 right-2 bg-gold text-maroon w-10 h-10 border-2 border-black flex items-center justify-center text-lg shadow-flat z-20">
-                    <i className="fas fa-check"></i>
-                  </div>
-                )}
+      <div className="animate-fade-in pb-32">
+        <div className="relative h-64 md:h-96 w-full border-b border-black/10 dark:border-gold/20">
+          <img 
+            src={selectedCreator.coverImage} 
+            alt={selectedCreator.name} 
+            className="w-full h-full object-cover grayscale opacity-50"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#0F0F0F] to-transparent"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-20 md:-mt-32 relative z-10">
+          <div className="flex flex-col md:flex-row gap-12 items-end mb-16">
+            <div className="w-40 h-40 md:w-56 md:h-56 bg-white dark:bg-black border-premium p-1 shrink-0 overflow-hidden shadow-2xl">
+              <img 
+                src={selectedCreator.avatar} 
+                alt={selectedCreator.name} 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex-grow pb-4">
+              <div className="flex items-center gap-4 mb-4">
+                <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter">{selectedCreator.name}</h1>
+                {isVerified && <i className="fas fa-check-circle text-gold text-2xl"></i>}
               </div>
-              <div className="flex-grow text-white">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="badge bg-gold text-maroon border-none shadow-flat">Verified Livelihood</div>
-                  {isVerified && (
-                    <span className="text-[10px] font-black bg-maroon text-gold px-3 py-1 border border-gold uppercase tracking-[0.2em] italic">
-                      {t.verified} Identity
-                    </span>
-                  )}
+              <div className="flex flex-wrap gap-8">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Patrons</span>
+                  <span className="text-xl font-black">{(selectedCreator.stats?.supporters || 0).toLocaleString()}</span>
                 </div>
-                <h1 className="text-7xl md:text-9xl font-black mb-4 leading-[0.85] uppercase tracking-tighter drop-shadow-2xl">
-                   {selectedCreator.name}
-                </h1>
-                <p className="text-gold text-2xl font-black uppercase tracking-widest bg-black px-4 py-1 w-fit border-premium">@{selectedCreator.username}</p>
-              </div>
-              <div className="flex flex-col gap-4 mb-4">
-                  <button 
-                    onClick={handleDonateStart}
-                    className="px-16 py-6 bg-gold text-maroon font-black text-sm uppercase tracking-[0.3em] border-premium shadow-flat-lg hover:bg-white transition-all btn-press"
-                  >
-                    {t.supportNow}
-                  </button>
-                  <button 
-                     onClick={() => readText(`${selectedCreator.name} specializing in ${selectedCreator.niche}. Biography: ${selectedCreator.bio}`)}
-                     disabled={isSpeaking}
-                     className="px-4 py-2 bg-black text-white text-[10px] font-black uppercase tracking-widest border border-white hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
-                  >
-                      <i className={`fas ${isSpeaking ? 'fa-spinner fa-spin' : 'fa-volume-up'}`}></i> {t.readAloud}
-                  </button>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Niche</span>
+                  <span className="text-xl font-black uppercase tracking-tighter">{selectedCreator.niche}</span>
+                </div>
               </div>
             </div>
+            <button 
+              onClick={handleDonateStart}
+              className="w-full md:w-auto px-12 py-6 bg-maroon text-gold font-black uppercase tracking-[0.4em] text-[10px] border border-black shadow-xl hover:scale-105 transition-all btn-press"
+            >
+              {t.supportNow}
+            </button>
           </div>
-        </div>
 
-        <div className="bg-white dark:bg-[#0A0A0A] sticky top-16 z-30 border-b-2 border-black dark:border-gold">
-          <div className="max-w-7xl mx-auto px-6 flex items-center justify-center md:justify-start overflow-x-auto no-scrollbar">
-            {['feed', 'about', 'tiers'].map(tab => (
-              <button 
-                key={tab}
-                onClick={() => setProfileTab(tab as any)}
-                className={`py-8 px-12 text-[11px] font-black uppercase tracking-[0.4em] transition-all whitespace-nowrap ${
-                  profileTab === tab ? 'bg-maroon text-gold' : 'text-gray-400 hover:text-black dark:hover:text-gold'
-                }`}
-              >
-                {tab === 'feed' ? 'Updates' : tab === 'tiers' ? 'Memberships' : 'Biography'}
-              </button>
-            ))}
-          </div>
-        </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+            <div className="lg:col-span-8">
+              <div className="flex border-b border-black/10 dark:border-gold/20 mb-12">
+                {(['feed', 'about', 'tiers'] as const).map(tab => (
+                  <button 
+                    key={tab} 
+                    onClick={() => setProfileTab(tab)}
+                    className={`px-8 py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all border-b-2 ${profileTab === tab ? 'border-maroon dark:border-gold text-maroon dark:text-gold' : 'border-transparent text-gray-400 hover:text-black dark:hover:text-gold'}`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
 
-        <div className="max-w-7xl mx-auto px-6 py-24 grid grid-cols-1 lg:grid-cols-12 gap-24 pb-64">
-          <div className="lg:col-span-8 space-y-24">
-            {profileTab === 'feed' && (
-              <div className="space-y-16">
-                {selectedCreator.feed?.map(item => (
-                  <article key={item.id} className="bg-white dark:bg-[#0A0A0A] border-premium shadow-flat p-12 hover:shadow-flat-lg transition-all">
-                    <div className="flex justify-between items-center mb-10 border-b-2 border-gray-100 dark:border-gray-900 pb-6">
-                      <div className="flex items-center gap-6">
-                        <div className="w-12 h-12 border-premium overflow-hidden bg-gray-100">
-                            <img src={selectedCreator.avatar} className="w-full h-full object-cover" alt="avatar" />
+              {profileTab === 'feed' && (
+                <div className="space-y-12 animate-fade-in">
+                  {selectedCreator.feed?.map(item => (
+                    <div key={item.id} className="bg-white dark:bg-[#0A0A0A] border-premium overflow-hidden">
+                      {item.image && <img src={item.image} alt={item.title} className="w-full aspect-video object-cover grayscale hover:grayscale-0 transition-all duration-500" />}
+                      <div className="p-10 md:p-14">
+                        <div className="flex justify-between items-start mb-6">
+                          <h3 className="text-2xl font-black uppercase tracking-tighter">{item.title}</h3>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.timestamp}</span>
                         </div>
-                        <div>
-                          <h4 className="font-black text-sm uppercase tracking-widest leading-none mb-1">{selectedCreator.name}</h4>
-                          <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{item.timestamp}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-loose mb-10">
+                          {item.content}
+                        </p>
+                        <div className="flex items-center gap-8 pt-8 border-t border-black/5 dark:border-gold/10">
+                          <button className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest hover:text-maroon dark:hover:text-gold transition-colors">
+                            <i className="far fa-heart"></i> {item.likes}
+                          </button>
+                          <button className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest hover:text-maroon dark:hover:text-gold transition-colors">
+                            <i className="far fa-comment"></i> Comment
+                          </button>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => readText(`Post titled: ${item.title}. Content: ${item.content}`)}
-                        className="text-maroon dark:text-gold hover:scale-110 transition-transform"
-                      >
-                        <i className="fas fa-volume-up text-lg"></i>
-                      </button>
                     </div>
-                    <h5 className="text-4xl font-black mb-6 uppercase tracking-tighter leading-none">{item.title}</h5>
-                    <p className="text-lg text-black dark:text-gray-300 mb-10 leading-relaxed font-bold uppercase tracking-tight">{item.content}</p>
-                    {item.image && <img src={item.image} className="w-full border-premium mb-10 shadow-flat" alt="post visualization" />}
-                    <div className="flex gap-10 border-t-2 border-gray-100 dark:border-gray-900 pt-8">
-                      <button className="flex items-center gap-3 text-xs font-black text-gray-500 hover:text-maroon dark:hover:text-gold transition-colors uppercase tracking-widest">
-                        <i className="far fa-heart text-lg"></i> {item.likes} Appreciation
-                      </button>
-                      <button className="flex items-center gap-3 text-xs font-black text-gray-500 hover:text-maroon dark:hover:text-gold transition-colors uppercase tracking-widest">
-                        <i className="far fa-comment text-lg"></i> Discuss
-                      </button>
+                  ))}
+                  {(!selectedCreator.feed || selectedCreator.feed.length === 0) && (
+                    <div className="py-24 text-center border-2 border-dashed border-black/5 dark:border-gold/10">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em]">Nothing found in the transmission.</p>
                     </div>
-                  </article>
-                ))}
-              </div>
-            )}
-
-            {profileTab === 'about' && (
-              <div className="bg-white dark:bg-[#0A0A0A] border-premium shadow-flat p-16">
-                <div className="badge mb-10">Biography</div>
-                <h3 className="text-5xl font-black mb-12 uppercase tracking-tighter leading-none">The Vision</h3>
-                <div className="text-lg text-black dark:text-gray-300 font-bold uppercase tracking-tight leading-relaxed space-y-12">
-                  <p className="border-l-8 border-maroon dark:border-gold pl-10 italic text-2xl leading-snug">{selectedCreator.bio}</p>
-                  <p>In a world of fluctuating economies, dadonate provides the stable bridge I need to focus entirely on craft. My mission is to advance cultural value through uncompromised creative effort.</p>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {profileTab === 'tiers' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                {selectedCreator.tiers.map(tier => (
-                  <TierCard 
-                    key={tier.id} 
-                    tier={tier} 
-                    currency={selectedCreator.currency} 
-                    selected={selectedTierId === tier.id}
-                    onSelect={(t) => { handleTierSelect(t); handleDonateStart(); }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-4 space-y-16">
-            <div className="bg-white dark:bg-[#0A0A0A] border-premium shadow-flat p-10">
-              <span className="text-[11px] font-black text-gray-500 uppercase tracking-[0.4em] block mb-10 border-b-2 border-black/5 dark:border-gold/20 pb-4">Financial Vitality</span>
-              <div className="grid grid-cols-1 gap-12">
-                <div>
-                  <p className="text-5xl font-black tracking-tighter leading-none italic">{(selectedCreator.stats?.supporters || 0).toLocaleString()}</p>
-                  <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mt-3">Verified Patrons</p>
+              {profileTab === 'about' && (
+                <div className="space-y-12 animate-fade-in">
+                  <div className="p-12 bg-white dark:bg-[#0A0A0A] border-premium">
+                    <h3 className="text-2xl font-black uppercase tracking-tighter mb-8 border-b-2 border-black/5 pb-6">Manifesto</h3>
+                    <p className="text-base text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-relaxed">
+                      {selectedCreator.bio}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-8">
+                     <div className="p-10 bg-maroon text-gold border-premium">
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4 block">Total Raised</span>
+                        <div className="text-3xl font-black tracking-tighter">{selectedCreator.totalRaised.toLocaleString()} <span className="text-sm opacity-50">{selectedCreator.currency}</span></div>
+                     </div>
+                     <div className="p-10 bg-white dark:bg-black border-premium">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 block">Supporters</span>
+                        <div className="text-3xl font-black tracking-tighter">{selectedCreator.stats?.supporters.toLocaleString()}</div>
+                     </div>
+                  </div>
                 </div>
-                <div className="pt-10 border-t-2 border-black dark:border-gold">
-                  <p className="text-5xl font-black text-maroon dark:text-gold tracking-tighter leading-none italic">{selectedCreator.currency} {selectedCreator.totalRaised.toLocaleString()}</p>
-                  <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mt-3">Community Funding</p>
+              )}
+
+              {profileTab === 'tiers' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
+                  {selectedCreator.tiers.map(tier => (
+                    <TierCard 
+                      key={tier.id} 
+                      tier={tier} 
+                      currency={selectedCreator.currency} 
+                      selected={selectedTierId === tier.id} 
+                      onSelect={handleTierSelect} 
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-4 space-y-10">
+              {selectedCreator.activeGoal && (
+                <GoalProgress 
+                  goal={selectedCreator.activeGoal} 
+                  currency={selectedCreator.currency} 
+                  language={language} 
+                />
+              )}
+              
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 p-10 border border-black/10 dark:border-gold/20">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-8">Identity Clearance</h4>
+                <div className="flex items-center gap-5 p-5 bg-white dark:bg-black border border-black/5">
+                   <div className={`w-3 h-3 rounded-full ${isVerified ? 'bg-green-500' : 'bg-gold'}`}></div>
+                   <span className="text-[9px] font-black uppercase tracking-widest">{isVerified ? 'Full Protocol Access' : 'Initial Trust Layer'}</span>
                 </div>
               </div>
             </div>
-            
-            {selectedCreator.activeGoal && (
-              <GoalProgress goal={selectedCreator.activeGoal} currency={selectedCreator.currency} language={language} />
-            )}
           </div>
         </div>
       </div>
@@ -1231,92 +715,131 @@ const App: React.FC = () => {
 
   const renderDonate = () => {
     if (!selectedCreator) return null;
+
     return (
-      <div className="max-w-7xl mx-auto px-6 py-32 animate-fade-in pb-64">
-        <button onClick={() => setView('creator-profile')} className="mb-16 text-[11px] font-black uppercase tracking-[0.5em] text-black dark:text-gold hover:translate-x-[-8px] transition-transform flex items-center gap-4">
-          <i className="fas fa-arrow-left"></i> {t.backToProfile}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-20 md:py-32 animate-fade-in">
+        <button 
+          onClick={() => setView('creator-profile')}
+          className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 hover:text-black dark:hover:text-gold mb-16 transition-all flex items-center gap-3"
+        >
+          <i className="fas fa-arrow-left text-[8px]"></i> {t.backToProfile}
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-black dark:bg-gold border-premium shadow-flat-lg overflow-hidden">
-          <div className="bg-white dark:bg-[#0A0A0A] p-16 md:p-24 border-b-2 lg:border-b-0">
-            <div className="badge mb-10">Selection</div>
-            <h2 className="text-5xl font-black mb-16 uppercase tracking-tighter leading-none italic">Choose <br/> Membership</h2>
-            <div className="grid grid-cols-1 gap-8 mb-16">
-              {selectedCreator.tiers.map(tier => (
-                <TierCard 
-                  key={tier.id} 
-                  tier={tier} 
-                  currency={selectedCreator.currency} 
-                  selected={selectedTierId === tier.id}
-                  onSelect={handleTierSelect}
-                />
-              ))}
-            </div>
-            <div className="pt-16 border-t-2 border-black/10 dark:border-gold/20">
-              <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.4em] block mb-8 italic">Alternative Amount</label>
-              <div className="relative">
-                <input 
-                  type="number"
-                  value={donationAmount}
-                  onChange={(e) => { setDonationAmount(Number(e.target.value)); setSelectedTierId(null); }}
-                  className="w-full pl-24 pr-10 py-8 bg-gray-50 dark:bg-black border-premium focus:bg-maroon focus:text-gold transition-all outline-none text-5xl font-black tracking-tighter italic"
-                />
-                <span className="absolute left-10 top-1/2 -translate-y-1/2 font-black text-3xl text-maroon dark:text-gold">{selectedCreator.currency}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 md:gap-32">
+          <div className="lg:col-span-7">
+            <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter mb-16 leading-none break-words">Support <br/><span className="text-maroon dark:text-gold">{selectedCreator.name}</span></h1>
+            
+            <div className="space-y-16">
+              <div>
+                <div className="badge mb-8">{t.chooseTier}</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  {selectedCreator.tiers.map(tier => (
+                    <TierCard 
+                      key={tier.id} 
+                      tier={tier} 
+                      currency={selectedCreator.currency} 
+                      selected={selectedTierId === tier.id} 
+                      onSelect={handleTierSelect} 
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="badge mb-8">{t.customAmount}</div>
+                <div className="relative">
+                  <input 
+                    type="number"
+                    value={donationAmount}
+                    onChange={(e) => { setDonationAmount(Number(e.target.value)); setSelectedTierId(null); setShowQR(false); }}
+                    className="w-full pl-20 pr-8 py-10 bg-white dark:bg-[#0A0A0A] border-premium outline-none font-black text-4xl md:text-6xl tracking-tighter uppercase focus:border-maroon dark:focus:border-gold transition-all"
+                  />
+                  <span className="absolute left-10 top-1/2 -translate-y-1/2 font-black text-3xl md:text-4xl text-maroon dark:text-gold">{selectedCreator.currency}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div>
+                   <div className="badge mb-8">{t.donorDetails}</div>
+                   {!user.isLoggedIn ? (
+                     <div className="group">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Display Name</label>
+                        <input 
+                          type="text"
+                          value={donorName}
+                          onChange={(e) => setDonorName(e.target.value)}
+                          placeholder="Anonymous"
+                          className="w-full px-6 py-5 bg-white dark:bg-black border-premium outline-none font-black text-sm uppercase tracking-widest focus:border-maroon dark:focus:border-gold transition-all"
+                        />
+                     </div>
+                   ) : (
+                     <div className="p-8 bg-zinc-50 dark:bg-zinc-900 border border-black/5 flex items-center gap-6">
+                        <div className="w-12 h-12 bg-maroon text-gold flex items-center justify-center font-black text-xs">{user.name[0].toUpperCase()}</div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest">Active Supporter</p>
+                          <p className="text-[11px] font-bold text-gray-500 uppercase">{user.name}</p>
+                        </div>
+                     </div>
+                   )}
+                </div>
+                <div>
+                   <div className="badge mb-8">{t.paymentMethod}</div>
+                   <div className="relative">
+                      <select 
+                        value={selectedProvider}
+                        onChange={(e) => setSelectedProvider(e.target.value)}
+                        className="w-full appearance-none px-8 py-6 bg-white dark:bg-black border-premium outline-none font-black text-[10px] uppercase tracking-[0.3em] cursor-pointer"
+                      >
+                        {PAYMENT_PROVIDERS.eWallets.map(p => <option key={p} value={p}>{p}</option>)}
+                        {PAYMENT_PROVIDERS.banks.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                      <i className="fas fa-chevron-down absolute right-8 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none opacity-40"></i>
+                   </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#0A0A0A] p-16 md:p-24 flex flex-col">
-            <div className="badge mb-10 bg-maroon text-gold">Gate</div>
-            <h2 className="text-5xl font-black mb-16 uppercase tracking-tighter leading-none italic">Payment <br/> Clearance</h2>
-            
-            {!user.isLoggedIn && (
-              <div className="mb-16">
-                <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.4em] block mb-6 italic">Identity Verification</label>
-                <input 
-                  type="text"
-                  placeholder={t.name}
-                  value={donorName}
-                  onChange={(e) => setDonorName(e.target.value)}
-                  className="w-full px-10 py-6 bg-gray-50 dark:bg-black border-premium outline-none font-black text-base uppercase tracking-widest focus:bg-gold focus:text-maroon transition-all"
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-6 mb-16">
-              {PAYMENT_PROVIDERS.eWallets.slice(0, 4).map(provider => (
-                <button 
-                  key={provider}
-                  onClick={() => setSelectedProvider(provider)}
-                  className={`p-6 border-premium transition-all flex items-center justify-between font-black text-[11px] uppercase tracking-[0.3em] italic ${
-                    selectedProvider === provider ? 'bg-maroon text-gold shadow-none translate-x-1 translate-y-1' : 'bg-white text-black hover:bg-gold hover:text-maroon shadow-flat'
-                  }`}
-                >
-                  {provider}
-                  {selectedProvider === provider && <i className="fas fa-check"></i>}
-                </button>
-              ))}
+          <div className="lg:col-span-5">
+            <div className="sticky top-24">
+              {showQR ? (
+                <div className="animate-fade-in space-y-10">
+                  <QRGenerator 
+                    value={`clearance-${selectedCreator.id}`} 
+                    amount={donationAmount} 
+                    currency={selectedCreator.currency} 
+                    provider={selectedProvider} 
+                    language={language}
+                  />
+                  
+                  {thankYouMessage && (
+                    <div className="p-10 bg-maroon text-gold border-premium animate-slide-up">
+                       <h4 className="text-[10px] font-black uppercase tracking-[0.4em] mb-6 opacity-60">Message from {selectedCreator.name}</h4>
+                       <p className="text-sm font-bold uppercase leading-relaxed tracking-tight italic">
+                         "{thankYouMessage}"
+                       </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-[#0A0A0A] border-premium p-10 md:p-14 text-center">
+                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em] mb-10">Donation Protocol</div>
+                  <div className="text-4xl md:text-6xl font-black mb-12 tracking-tighter">
+                    {donationAmount.toLocaleString()} <span className="text-maroon dark:text-gold">{selectedCreator.currency}</span>
+                  </div>
+                  <button 
+                    onClick={handleGenerateQR}
+                    disabled={isGenerating || donationAmount < 1}
+                    className="w-full py-8 bg-black text-gold dark:bg-gold dark:text-black font-black uppercase tracking-[0.5em] text-[10px] border border-black hover:opacity-90 transition-all btn-press disabled:opacity-30"
+                  >
+                    {isGenerating ? <><i className="fas fa-spinner fa-spin mr-3"></i> Processing</> : <><i className="fas fa-qrcode mr-3"></i> {t.confirmPay}</>}
+                  </button>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-10 leading-loose">
+                    {t.fundingDisclaimer}
+                  </p>
+                </div>
+              )}
             </div>
-
-            {showQR ? (
-              <div className="animate-fade-in flex-grow flex flex-col">
-                <QRGenerator 
-                  value="donation-ref-123" 
-                  amount={donationAmount} 
-                  currency={selectedCreator.currency} 
-                  provider={selectedProvider} 
-                  language={language}
-                />
-              </div>
-            ) : (
-              <button 
-                onClick={handleGenerateQR}
-                disabled={isGenerating}
-                className="mt-auto w-full py-10 bg-maroon text-gold font-black uppercase tracking-[0.5em] text-sm border-premium shadow-flat hover:shadow-flat-lg transition-all btn-press disabled:opacity-50"
-              >
-                {isGenerating ? <><i className="fas fa-spinner fa-spin mr-4"></i> Generating QR</> : <><i className="fas fa-qrcode mr-4"></i> Finalize Payment</>}
-              </button>
-            )}
           </div>
         </div>
       </div>

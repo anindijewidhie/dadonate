@@ -19,59 +19,40 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ value, amount, currency, prov
   const downloadSVG = () => {
     const svgElement = document.getElementById('qr-code-svg');
     if (!svgElement) return;
-    
     const serializer = new XMLSerializer();
     let source = serializer.serializeToString(svgElement);
-    
-    // Ensure standard XML namespaces are present for standalone SVG viewing in external viewers
     if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
       source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
     }
-    if (!source.match(/^<svg[^>]+xmlns\:xlink="http\:\/\/www\.w3\.org\/1999\/xlink"/)) {
-      source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
-    }
-
-    // Add XML declaration for full compatibility
     source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
-
-    // Use Blob and createObjectURL for better memory management and robustness with SVG serialization
     const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-
-    // Construct a clear, professional filename for the creator/donor
-    const safeProvider = provider.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const timestamp = new Date().toISOString().slice(0, 10);
-    const filename = `dadonate_${safeProvider}_${amount}${currency}_${timestamp}.svg`;
-
-    // Trigger programmatic download
+    const filename = `dadonate_p2p_clearance_${amount}${currency}.svg`;
     const downloadLink = document.createElement("a");
     downloadLink.href = url;
     downloadLink.download = filename;
     document.body.appendChild(downloadLink);
     downloadLink.click();
-    
-    // Cleanup resources
     document.body.removeChild(downloadLink);
     URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="bg-white dark:bg-[#121212] border-2 border-maroon dark:border-gold p-8 flex flex-col items-center animate-fade-in shadow-flat">
-      <div className="text-center mb-8">
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] block mb-2 italic">
+    <div className="bg-white dark:bg-[#050505] border border-maroon dark:border-gold p-10 flex flex-col items-center animate-fade-in">
+      <div className="text-center mb-10 w-full">
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em] block mb-4">
           {t.scanToPay} {provider}
         </span>
-        <h3 className="text-4xl font-black tracking-tighter italic">
-          {amount.toLocaleString()} <span className="text-maroon dark:text-gold">{currency}</span>
+        <h3 className="text-5xl font-black tracking-tighter border-b border-black/5 dark:border-gold/10 pb-6 mb-6">
+          {amount.toLocaleString()} <span className="text-maroon dark:text-gold uppercase">{currency}</span>
         </h3>
       </div>
       
-      <div className="p-6 border-premium bg-white mb-10 shadow-flat-lg group relative">
-        <div className="absolute inset-0 bg-gold/5 group-hover:bg-transparent transition-colors pointer-events-none"></div>
+      <div className="p-8 border border-black/10 dark:border-gold/30 bg-white mb-10 transition-all">
         <QRCodeSVG 
           id="qr-code-svg"
           value={qrData}
-          size={240}
+          size={220}
           level="H"
           fgColor="#000000"
           bgColor="#FFFFFF"
@@ -81,19 +62,18 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ value, amount, currency, prov
 
       <button 
         onClick={downloadSVG}
-        aria-label={t.downloadQR || "Download Payment QR Code"}
-        className="mb-8 w-full px-8 py-5 bg-maroon text-gold border-premium shadow-flat hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-[11px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 group btn-press"
+        className="mb-10 w-full px-8 py-5 bg-maroon text-gold border border-black font-black uppercase tracking-[0.4em] text-[10px] flex items-center justify-center gap-4 transition-all hover:opacity-90 btn-press"
       >
-        <i className="fas fa-file-arrow-down text-xl group-hover:animate-bounce"></i>
-        {t.downloadQR || "Save QR as SVG"}
+        <i className="fas fa-download"></i>
+        {t.downloadQR || "Save Protocol"}
       </button>
       
-      <div className="w-full text-center py-5 border-t-2 border-black/10 dark:border-gold/20">
-        <div className="flex items-center justify-center gap-2 text-[10px] font-black text-maroon dark:text-gold uppercase tracking-[0.4em] mb-1">
-          <i className="fas fa-shield-check"></i> Robust Clearance
+      <div className="w-full text-center py-6 border-t border-black/10 dark:border-gold/20">
+        <div className="flex items-center justify-center gap-3 text-[10px] font-black text-maroon dark:text-gold uppercase tracking-[0.4em] mb-2">
+          <i className="fas fa-fingerprint"></i> Encrypted Gate
         </div>
         <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
-          Standard {provider} QR Protocol • 256-bit Encrypted Metadata
+          P2P Secure Clearance • Nordic Protocol 1.0
         </p>
       </div>
     </div>
