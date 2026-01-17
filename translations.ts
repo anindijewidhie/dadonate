@@ -168,5 +168,10 @@ export const TRANSLATIONS: Record<Language, any> = {
   'fr': { ...en, isRTL: false },
   'ar': { ...en, isRTL: true },
   'pt': { ...en, isRTL: false },
-  'ru': { ...en, isRTL: false }
+  'ru': { ...en, isRTL: false },
+  'hi': { ...en, isRTL: false },
+  'bn': { ...en, isRTL: false },
+  'ur': { ...en, isRTL: true },
+  'ja': { ...en, isRTL: false },
+  'ko': { ...en, isRTL: false }
 };

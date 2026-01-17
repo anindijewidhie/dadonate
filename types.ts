@@ -1,5 +1,5 @@
 
-export type Language = 'en' | 'id' | 'zh-TW' | 'zh-CN' | 'es' | 'fr' | 'ar' | 'pt' | 'ru';
+export type Language = 'en' | 'id' | 'zh-TW' | 'zh-CN' | 'es' | 'fr' | 'ar' | 'pt' | 'ru' | 'hi' | 'bn' | 'ur' | 'ja' | 'ko';
 
 export interface AccessibilitySettings {
   highContrast: boolean;

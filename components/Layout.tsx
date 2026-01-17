@@ -124,10 +124,18 @@ const Layout: React.FC<LayoutProps> = ({
                 >
                   <option value="en">EN</option>
                   <option value="id">ID</option>
+                  <option value="zh-TW">TW</option>
+                  <option value="zh-CN">CN</option>
                   <option value="es">ES</option>
                   <option value="fr">FR</option>
                   <option value="pt">PT</option>
+                  <option value="ru">RU</option>
                   <option value="ar">AR</option>
+                  <option value="hi">HI</option>
+                  <option value="bn">BN</option>
+                  <option value="ur">UR</option>
+                  <option value="ja">JA</option>
+                  <option value="ko">KO</option>
                 </select>
                 <i className="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[8px] pointer-events-none opacity-40"></i>
               </div>
