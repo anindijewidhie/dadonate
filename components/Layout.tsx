@@ -173,6 +173,21 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="max-w-sm">
               <div className="text-3xl font-black text-maroon dark:text-gold tracking-tighter mb-6 lowercase">dadonate</div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-widest leading-loose">{t.sharing}</p>
+              
+              <div className="mt-8 flex flex-wrap gap-4">
+                <div className="flex items-center gap-2 px-3 py-1.5 border border-black/10 dark:border-gold/30 bg-gray-50 dark:bg-black/40">
+                  <i className="fab fa-android text-maroon dark:text-gold"></i>
+                  <span className="text-[8px] font-black uppercase tracking-widest">Android</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 border border-black/10 dark:border-gold/30 bg-gray-50 dark:bg-black/40">
+                  <i className="fab fa-apple text-maroon dark:text-gold"></i>
+                  <span className="text-[8px] font-black uppercase tracking-widest">iOS</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 border border-black/10 dark:border-gold/30 bg-gray-50 dark:bg-black/40">
+                  <i className="fas fa-microchip text-maroon dark:text-gold"></i>
+                  <span className="text-[8px] font-black uppercase tracking-widest">HarmonyOS</span>
+                </div>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-16 md:gap-32 w-full md:w-auto">
@@ -201,7 +216,10 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="max-w-md w-full md:w-auto">
               <div className="flex flex-col items-start md:items-end gap-6">
                 <p className="text-[9px] text-gray-400 uppercase tracking-widest leading-relaxed text-left md:text-right max-w-xs">
-                  A radical transparency model: Split 50/50 between maintenance and development.
+                  {t.availableOn}
+                </p>
+                <p className="text-[9px] text-gray-400 uppercase tracking-widest leading-relaxed text-left md:text-right max-w-xs">
+                  A radical transparency model: 40% paying users, 20% maintenance, 20% development, 20% site owner.
                 </p>
                 <button 
                   onClick={() => onNavigate('fund-platform')}

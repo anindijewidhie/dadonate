@@ -229,6 +229,26 @@ const App: React.FC = () => {
         </div>
       </section>
 
+      {/* Platform Availability Section */}
+      <section className="py-12 border-b border-black/5 dark:border-gold/10 bg-gray-50 dark:bg-black/20">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-maroon text-gold border border-black flex items-center justify-center">
+              <i className="fas fa-mobile-screen-button"></i>
+            </div>
+            <div>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.3em]">{t.universalAccessibility}</h4>
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">{t.availableOn}</p>
+            </div>
+          </div>
+          <div className="flex gap-10 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+             <i className="fab fa-android text-2xl" title="Android"></i>
+             <i className="fab fa-apple text-2xl" title="iOS"></i>
+             <i className="fas fa-microchip text-2xl" title="HarmonyOS"></i>
+          </div>
+        </div>
+      </section>
+
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-40">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-32 items-center">
           <div className="flex flex-col items-start">
@@ -280,7 +300,7 @@ const App: React.FC = () => {
   const renderFundPlatform = () => (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32 animate-fade-in pb-48 md:pb-64">
       <div className="badge mb-10 px-4 py-2 text-center w-full md:w-auto inline-block whitespace-normal leading-tight">
-        Direct Founder Support & Transparency
+        Direct Foundation Transparency
       </div>
       <h1 className="text-4xl sm:text-6xl md:text-8xl font-black uppercase tracking-tighter mb-16 leading-[1] break-words">
         {t.fundSubtitle}
@@ -295,34 +315,56 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12">
             <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
                <div className="w-10 h-10 bg-maroon text-gold flex items-center justify-center text-lg mb-8">
-                 <i className="fas fa-crown"></i>
+                 <i className="fas fa-users"></i>
                </div>
                <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.globalPool}</h4>
                <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.poolDesc}</p>
             </div>
             <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
                <div className="w-10 h-10 bg-black text-gold dark:bg-gold dark:text-black flex items-center justify-center text-lg mb-8 border border-black dark:border-none">
-                 <i className="fas fa-code-branch"></i>
+                 <i className="fas fa-server"></i>
                </div>
                <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.infrastructure}</h4>
                <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.infraDesc}</p>
+            </div>
+            <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
+               <div className="w-10 h-10 bg-maroon text-gold flex items-center justify-center text-lg mb-8">
+                 <i className="fas fa-laptop-code"></i>
+               </div>
+               <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.development}</h4>
+               <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.devDesc}</p>
+            </div>
+            <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
+               <div className="w-10 h-10 bg-black text-gold dark:bg-gold dark:text-black flex items-center justify-center text-lg mb-8 border border-black dark:border-none">
+                 <i className="fas fa-crown"></i>
+               </div>
+               <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.siteOwner}</h4>
+               <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.ownerDesc}</p>
             </div>
           </div>
           
           <div className="p-8 md:p-16 bg-maroon text-gold border-premium">
             <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-8 border-b border-gold/20 pb-6">Integrity Split</h4>
-            <div className="grid grid-cols-2 gap-8 mb-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
               <div>
-                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Founder Livelihood</div>
-                <div className="text-3xl md:text-5xl font-black tracking-tighter">50.0%</div>
+                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Paying Users</div>
+                <div className="text-3xl md:text-4xl font-black tracking-tighter">40.0%</div>
               </div>
               <div>
-                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Technical Reserve</div>
-                <div className="text-3xl md:text-5xl font-black tracking-tighter">50.0%</div>
+                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Maintenance</div>
+                <div className="text-3xl md:text-4xl font-black tracking-tighter">20.0%</div>
+              </div>
+              <div>
+                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Development</div>
+                <div className="text-3xl md:text-4xl font-black tracking-tighter">20.0%</div>
+              </div>
+              <div>
+                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Site Owner</div>
+                <div className="text-3xl md:text-4xl font-black tracking-tighter">20.0%</div>
               </div>
             </div>
             <p className="text-xs md:text-sm font-bold uppercase tracking-wide leading-relaxed opacity-80">
-              "Contributions are split exactly 50/50: half supports my life's work, half funds the infrastructure. Transparency is our baseline."
+              "Total transparency in our economic model: split into four distinct vectors of growth and sustainability."
             </p>
           </div>
         </div>
@@ -355,14 +397,14 @@ const App: React.FC = () => {
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-lg text-maroon dark:text-gold">$</span>
                </div>
                <p className="col-span-4 text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-4 text-center">
-                 Any amount. Clean split. Full impact.
+                 Clean split. Verified impact.
                </p>
             </div>
 
             {showPlatformQR ? (
               <div className="animate-fade-in">
                 <QRGenerator 
-                  value="founder-p2p-split" 
+                  value="platform-split-4pillar" 
                   amount={platformDonationAmount} 
                   currency="USD" 
                   provider={PAYMENT_PROVIDERS.eWallets[0]} 
