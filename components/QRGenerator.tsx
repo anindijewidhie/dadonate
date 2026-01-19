@@ -10,11 +10,12 @@ interface QRGeneratorProps {
   currency: string;
   provider: string;
   language: Language;
+  destinationAccount?: string; // Optional: Show specific account info below QR
 }
 
-const QRGenerator: React.FC<QRGeneratorProps> = ({ value, amount, currency, provider, language }) => {
+const QRGenerator: React.FC<QRGeneratorProps> = ({ value, amount, currency, provider, language, destinationAccount }) => {
   const t = TRANSLATIONS[language];
-  const qrData = JSON.stringify({ app: 'dadonate', amount, currency, ref: value });
+  const qrData = JSON.stringify({ app: 'dadonate', amount, currency, ref: value, destination: destinationAccount });
 
   const downloadSVG = () => {
     const svgElement = document.getElementById('qr-code-svg');
@@ -48,7 +49,7 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ value, amount, currency, prov
         </h3>
       </div>
       
-      <div className="p-8 border border-black/10 dark:border-gold/30 bg-white mb-10 transition-all">
+      <div className="p-8 border border-black/10 dark:border-gold/30 bg-white mb-6 transition-all">
         <QRCodeSVG 
           id="qr-code-svg"
           value={qrData}
@@ -59,6 +60,13 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ value, amount, currency, prov
           includeMargin={true}
         />
       </div>
+
+      {destinationAccount && (
+        <div className="mb-8 p-4 bg-gray-50 dark:bg-black/50 border border-black/5 dark:border-gold/10 w-full text-center">
+          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Destination Key</p>
+          <p className="text-[10px] font-black text-maroon dark:text-gold uppercase tracking-tighter truncate">{destinationAccount}</p>
+        </div>
+      )}
 
       <button 
         onClick={downloadSVG}

@@ -297,135 +297,155 @@ const App: React.FC = () => {
     </div>
   );
 
-  const renderFundPlatform = () => (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32 animate-fade-in pb-48 md:pb-64">
-      <div className="badge mb-10 px-4 py-2 text-center w-full md:w-auto inline-block whitespace-normal leading-tight">
-        Direct Foundation Transparency
-      </div>
-      <h1 className="text-4xl sm:text-6xl md:text-8xl font-black uppercase tracking-tighter mb-16 leading-[1] break-words">
-        {t.fundSubtitle}
-      </h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 md:gap-32">
-        <div className="lg:col-span-7 space-y-12 md:space-y-20">
-          <p className="text-xl md:text-2xl text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-relaxed max-w-3xl border-l-4 border-maroon dark:border-gold pl-6 md:pl-10">
-            {t.fundDesc}
-          </p>
+  const renderFundPlatform = () => {
+    // Determine target account based on selected provider or just show all for platform support
+    const siteOwnerAccounts = "Bank Jago: 107863277869, PayPal: dhea_wasisto@yahoo.com, E-wallet: +628567239000";
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12">
-            <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
-               <div className="w-10 h-10 bg-maroon text-gold flex items-center justify-center text-lg mb-8">
-                 <i className="fas fa-users"></i>
-               </div>
-               <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.globalPool}</h4>
-               <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.poolDesc}</p>
-            </div>
-            <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
-               <div className="w-10 h-10 bg-black text-gold dark:bg-gold dark:text-black flex items-center justify-center text-lg mb-8 border border-black dark:border-none">
-                 <i className="fas fa-server"></i>
-               </div>
-               <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.infrastructure}</h4>
-               <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.infraDesc}</p>
-            </div>
-            <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
-               <div className="w-10 h-10 bg-maroon text-gold flex items-center justify-center text-lg mb-8">
-                 <i className="fas fa-laptop-code"></i>
-               </div>
-               <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.development}</h4>
-               <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.devDesc}</p>
-            </div>
-            <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
-               <div className="w-10 h-10 bg-black text-gold dark:bg-gold dark:text-black flex items-center justify-center text-lg mb-8 border border-black dark:border-none">
-                 <i className="fas fa-crown"></i>
-               </div>
-               <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.siteOwner}</h4>
-               <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.ownerDesc}</p>
-            </div>
-          </div>
-          
-          <div className="p-8 md:p-16 bg-maroon text-gold border-premium">
-            <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-8 border-b border-gold/20 pb-6">Integrity Split</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-              <div>
-                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Paying Users</div>
-                <div className="text-3xl md:text-4xl font-black tracking-tighter">40.0%</div>
-              </div>
-              <div>
-                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Maintenance</div>
-                <div className="text-3xl md:text-4xl font-black tracking-tighter">20.0%</div>
-              </div>
-              <div>
-                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Development</div>
-                <div className="text-3xl md:text-4xl font-black tracking-tighter">20.0%</div>
-              </div>
-              <div>
-                <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Site Owner</div>
-                <div className="text-3xl md:text-4xl font-black tracking-tighter">20.0%</div>
-              </div>
-            </div>
-            <p className="text-xs md:text-sm font-bold uppercase tracking-wide leading-relaxed opacity-80">
-              "Total transparency in our economic model: split into four distinct vectors of growth and sustainability."
+    return (
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32 animate-fade-in pb-48 md:pb-64">
+        <div className="badge mb-10 px-4 py-2 text-center w-full md:w-auto inline-block whitespace-normal leading-tight">
+          Direct Foundation Transparency
+        </div>
+        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black uppercase tracking-tighter mb-16 leading-[1] break-words">
+          {t.fundSubtitle}
+        </h1>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 md:gap-32">
+          <div className="lg:col-span-7 space-y-12 md:space-y-20">
+            <p className="text-xl md:text-2xl text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-relaxed max-w-3xl border-l-4 border-maroon dark:border-gold pl-6 md:pl-10">
+              {t.fundDesc}
             </p>
-          </div>
-        </div>
 
-        <div className="lg:col-span-5">
-          <div className="bg-white dark:bg-[#0A0A0A] border-premium p-8 md:p-12 sticky top-24">
-            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-10 border-b-2 border-black dark:border-gold pb-4">{t.supportEcosystem}</h3>
-            
-            <div className="grid grid-cols-4 gap-3 md:gap-4 mb-10">
-               {[1, 2, 5, 10, 20, 50, 100].map(amount => (
-                 <button 
-                  key={amount}
-                  onClick={() => { setPlatformDonationAmount(amount); setShowPlatformQR(false); }}
-                  className={`p-3 md:p-4 border-premium transition-all flex items-center justify-center font-bold text-xs md:text-sm uppercase tracking-tight ${
-                    platformDonationAmount === amount && !showPlatformQR ? 'bg-maroon text-gold' : 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-900'
-                  }`}
-                 >
-                   <span>${amount}</span>
-                 </button>
-               ))}
-               
-               <div className="col-span-4 relative mt-4">
-                  <input 
-                    type="number"
-                    value={platformDonationAmount}
-                    onChange={(e) => { setPlatformDonationAmount(Number(e.target.value)); setShowPlatformQR(false); }}
-                    min={1}
-                    className="w-full pl-12 md:pl-14 pr-6 py-5 bg-gray-50 dark:bg-black border-premium outline-none font-black text-lg md:text-xl tracking-tighter uppercase focus:border-maroon dark:focus:border-gold transition-all"
-                  />
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-lg text-maroon dark:text-gold">$</span>
-               </div>
-               <p className="col-span-4 text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-4 text-center">
-                 Clean split. Verified impact.
-               </p>
-            </div>
-
-            {showPlatformQR ? (
-              <div className="animate-fade-in">
-                <QRGenerator 
-                  value="platform-split-4pillar" 
-                  amount={platformDonationAmount} 
-                  currency="USD" 
-                  provider={PAYMENT_PROVIDERS.eWallets[0]} 
-                  language={language}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12">
+              <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
+                 <div className="w-10 h-10 bg-maroon text-gold flex items-center justify-center text-lg mb-8">
+                   <i className="fas fa-users"></i>
+                 </div>
+                 <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.globalPool}</h4>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.poolDesc}</p>
               </div>
-            ) : (
-              <button 
-                onClick={handleGeneratePlatformQR}
-                disabled={isGenerating || platformDonationAmount < 1}
-                className="w-full py-6 md:py-8 bg-black text-gold dark:bg-gold dark:text-black font-black uppercase tracking-[0.4em] text-[10px] border-premium hover:opacity-90 transition-all btn-press disabled:opacity-30"
-              >
-                {isGenerating ? <i className="fas fa-spinner fa-spin mr-3"></i> : <i className="fas fa-qrcode mr-3"></i>} 
-                Authorize Support
-              </button>
-            )}
+              <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
+                 <div className="w-10 h-10 bg-black text-gold dark:bg-gold dark:text-black flex items-center justify-center text-lg mb-8 border border-black dark:border-none">
+                   <i className="fas fa-server"></i>
+                 </div>
+                 <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.infrastructure}</h4>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.infraDesc}</p>
+              </div>
+              <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
+                 <div className="w-10 h-10 bg-maroon text-gold flex items-center justify-center text-lg mb-8">
+                   <i className="fas fa-laptop-code"></i>
+                 </div>
+                 <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.development}</h4>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.devDesc}</p>
+              </div>
+              <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
+                 <div className="w-10 h-10 bg-black text-gold dark:bg-gold dark:text-black flex items-center justify-center text-lg mb-8 border border-black dark:border-none">
+                   <i className="fas fa-crown"></i>
+                 </div>
+                 <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.siteOwner}</h4>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.ownerDesc}</p>
+              </div>
+            </div>
+            
+            <div className="p-8 md:p-16 bg-maroon text-gold border-premium">
+              <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-8 border-b border-gold/20 pb-6">Integrity Split</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+                <div>
+                  <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Paying Users</div>
+                  <div className="text-3xl md:text-4xl font-black tracking-tighter">40.0%</div>
+                </div>
+                <div>
+                  <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Maintenance</div>
+                  <div className="text-3xl md:text-4xl font-black tracking-tighter">20.0%</div>
+                </div>
+                <div>
+                  <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Development</div>
+                  <div className="text-3xl md:text-4xl font-black tracking-tighter">20.0%</div>
+                </div>
+                <div>
+                  <div className="text-[9px] font-black text-gold/60 uppercase tracking-widest mb-2">Site Owner</div>
+                  <div className="text-3xl md:text-4xl font-black tracking-tighter">20.0%</div>
+                </div>
+              </div>
+              <p className="text-xs md:text-sm font-bold uppercase tracking-wide leading-relaxed opacity-80">
+                "Total transparency in our economic model: split into four distinct vectors of growth and sustainability."
+              </p>
+            </div>
+          </div>
+
+          <div className="lg:col-span-5">
+            <div className="bg-white dark:bg-[#0A0A0A] border-premium p-8 md:p-12 sticky top-24">
+              <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-10 border-b-2 border-black dark:border-gold pb-4">{t.supportEcosystem}</h3>
+              
+              <div className="grid grid-cols-4 gap-3 md:gap-4 mb-10">
+                 {[1, 2, 5, 10, 20, 50, 100].map(amount => (
+                   <button 
+                    key={amount}
+                    onClick={() => { setPlatformDonationAmount(amount); setShowPlatformQR(false); }}
+                    className={`p-3 md:p-4 border-premium transition-all flex items-center justify-center font-bold text-xs md:text-sm uppercase tracking-tight ${
+                      platformDonationAmount === amount && !showPlatformQR ? 'bg-maroon text-gold' : 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-900'
+                    }`}
+                   >
+                     <span>${amount}</span>
+                   </button>
+                 ))}
+                 
+                 <div className="col-span-4 relative mt-4">
+                    <input 
+                      type="number"
+                      value={platformDonationAmount}
+                      onChange={(e) => { setPlatformDonationAmount(Number(e.target.value)); setShowPlatformQR(false); }}
+                      min={1}
+                      className="w-full pl-12 md:pl-14 pr-6 py-5 bg-gray-50 dark:bg-black border-premium outline-none font-black text-lg md:text-xl tracking-tighter uppercase focus:border-maroon dark:focus:border-gold transition-all"
+                    />
+                    <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-lg text-maroon dark:text-gold">$</span>
+                 </div>
+                 <p className="col-span-4 text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-4 text-center">
+                   Clean split. Verified impact.
+                 </p>
+              </div>
+
+              {showPlatformQR ? (
+                <div className="animate-fade-in">
+                  <QRGenerator 
+                    value="platform-split-4pillar" 
+                    amount={platformDonationAmount} 
+                    currency="USD" 
+                    provider={selectedProvider} 
+                    language={language}
+                    destinationAccount={siteOwnerAccounts}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="relative">
+                    <select 
+                      value={selectedProvider}
+                      onChange={(e) => setSelectedProvider(e.target.value)}
+                      className="w-full appearance-none px-8 py-6 bg-white dark:bg-black border-premium outline-none font-black text-[10px] uppercase tracking-[0.3em] cursor-pointer"
+                    >
+                      {PAYMENT_PROVIDERS.eWallets.map(p => <option key={p} value={p}>{p}</option>)}
+                      {PAYMENT_PROVIDERS.banks.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <i className="fas fa-chevron-down absolute right-8 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none opacity-40"></i>
+                  </div>
+                  
+                  <button 
+                    onClick={handleGeneratePlatformQR}
+                    disabled={isGenerating || platformDonationAmount < 1}
+                    className="w-full py-6 md:py-8 bg-black text-gold dark:bg-gold dark:text-black font-black uppercase tracking-[0.4em] text-[10px] border-premium hover:opacity-90 transition-all btn-press disabled:opacity-30"
+                  >
+                    {isGenerating ? <i className="fas fa-spinner fa-spin mr-3"></i> : <i className="fas fa-qrcode mr-3"></i>} 
+                    Authorize Support
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderDashboard = () => (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-20 md:py-32 animate-fade-in">
@@ -674,7 +694,7 @@ const App: React.FC = () => {
                           <h3 className="text-2xl font-black uppercase tracking-tighter">{item.title}</h3>
                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.timestamp}</span>
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-loose mb-10">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight line-height-loose mb-10">
                           {item.content}
                         </p>
                         <div className="flex items-center gap-8 pt-8 border-t border-black/5 dark:border-gold/10">
