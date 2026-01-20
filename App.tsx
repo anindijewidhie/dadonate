@@ -298,7 +298,6 @@ const App: React.FC = () => {
   );
 
   const renderFundPlatform = () => {
-    // Determine target account based on selected provider or just show all for platform support
     const siteOwnerAccounts = "Bank Jago: 107863277869, PayPal: dhea_wasisto@yahoo.com, E-wallet: +628567239000";
 
     return (
@@ -400,9 +399,6 @@ const App: React.FC = () => {
                     />
                     <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-lg text-maroon dark:text-gold">$</span>
                  </div>
-                 <p className="col-span-4 text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-4 text-center">
-                   Clean split. Verified impact.
-                 </p>
               </div>
 
               {showPlatformQR ? (
@@ -694,7 +690,7 @@ const App: React.FC = () => {
                           <h3 className="text-2xl font-black uppercase tracking-tighter">{item.title}</h3>
                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.timestamp}</span>
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight line-height-loose mb-10">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-loose mb-10">
                           {item.content}
                         </p>
                         <div className="flex items-center gap-8 pt-8 border-t border-black/5 dark:border-gold/10">

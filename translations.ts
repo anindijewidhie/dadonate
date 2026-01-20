@@ -179,8 +179,8 @@ export const TRANSLATIONS: Record<Language, any> = {
   'pt': { ...en, availableOn: "Disponível em Android, iOS e HarmonyOS para todos los dispositivos.", isRTL: false },
   'ru': { ...en, availableOn: "Доступно на Android, iOS и HarmonyOS для всех устройств.", isRTL: false },
   'hi': { ...en, availableOn: "सभी उपकरणों के लिए Android, iOS और HarmonyOS पर उपलब्ध है।", isRTL: false },
-  'bn': { ...en, availableOn: "সব ডিভাইসের জন্য Android, iOS এবং HarmonyOS-এ উপলব্ধ।", isRTL: false },
-  'ur': { ...en, availableOn: "تمام آلات کے لیے Android، iOS اور HarmonyOS पर उपलब्ध है।", isRTL: true },
+  'bn': { ...en, availableOn: "সব ডিভাইসের জন্য Android, iOS and HarmonyOS-এ উপলব্ধ।", isRTL: false },
+  'ur': { ...en, availableOn: "تمام آلات کے لیے Android، iOS اور HarmonyOS پر دستیاب ہے۔", isRTL: true },
   'ja': { ...en, availableOn: "すべてのデバイスの Android、iOS、および HarmonyOS で利用可能です。", isRTL: false },
   'ko': { ...en, availableOn: "모든 기기에서 Android, iOS 및 HarmonyOS를 지원합니다.", isRTL: false }
 };
