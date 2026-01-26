@@ -17,7 +17,15 @@ export const SUPPORTED_CURRENCIES = [
   { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
   { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
   { code: 'RUB', symbol: '₽', name: 'Russian Ruble' },
-  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' }
+  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+  { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
+  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
+  { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
+  { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham' },
+  { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal' }
 ];
 
 export const MOCK_CREATORS: Creator[] = [
@@ -171,6 +179,6 @@ export const MOCK_CREATORS: Creator[] = [
 ];
 
 export const PAYMENT_PROVIDERS = {
-  banks: ['Chase', 'HSBC', 'DBS', 'Barclays', 'Santander', 'Bank of America'],
-  eWallets: ['PayPal', 'Venmo', 'CashApp', 'GrabPay', 'GoPay', 'Alipay', 'Apple Pay']
+  banks: ['Chase', 'HSBC', 'DBS', 'Barclays', 'Santander', 'Bank of America', 'Bank Jago'],
+  eWallets: ['PayPal', 'Venmo', 'CashApp', 'GrabPay', 'GoPay', 'Alipay', 'Apple Pay', 'OVO', 'Dana']
 };

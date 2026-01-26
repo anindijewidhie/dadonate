@@ -7,7 +7,7 @@ import QRGenerator from './components/QRGenerator';
 import GoalProgress from './components/GoalProgress';
 import TierCard from './components/TierCard';
 import Auth from './components/Auth';
-import { Creator, AppView, Tier, Language, User, AccessibilitySettings, PaymentMethod, VerificationStatus } from './types';
+import { Creator, AppView, Tier, Language, User, AccessibilitySettings, PaymentMethod, VerificationStatus, DonorType } from './types';
 import { MOCK_CREATORS, PAYMENT_PROVIDERS, SUPPORTED_CURRENCIES } from './constants';
 import { TRANSLATIONS } from './translations';
 import { suggestThankYouMessage } from './services/geminiService';
@@ -67,6 +67,7 @@ const App: React.FC = () => {
   const [thankYouMessage, setThankYouMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [donorName, setDonorName] = useState("anonymous supporter");
+  const [donorType, setDonorType] = useState<DonorType>('individual');
   const [selectedProvider, setSelectedProvider] = useState(PAYMENT_PROVIDERS.eWallets[0]);
   const [profileTab, setProfileTab] = useState<'feed' | 'about' | 'tiers'>('feed');
   const [dashTab, setDashTab] = useState<'overview' | 'payouts' | 'security'>('overview');
@@ -120,10 +121,10 @@ const App: React.FC = () => {
   
   const strengthLabel = useMemo(() => {
     if (strengthCount === 0) return '';
-    if (strengthCount < 3) return 'Insecure Protocol';
-    if (strengthCount < 5) return 'Standard Protection';
-    return 'Omega Clearance';
-  }, [strengthCount]);
+    if (strengthCount < 3) return t.insecureProtocol;
+    if (strengthCount < 5) return t.standardProtection;
+    return t.omegaClearance;
+  }, [strengthCount, t]);
 
   const creators = useMemo(() => {
     return MOCK_CREATORS.map(c => ({
@@ -201,6 +202,8 @@ const App: React.FC = () => {
     }, 1000);
   };
 
+  const standardAmounts = [1, 2, 5, 10, 20, 50, 100];
+
   const renderHome = () => (
     <div className="animate-fade-in overflow-hidden">
       <section className="bg-white dark:bg-[#050505] pt-16 pb-24 md:pt-32 md:pb-48 px-4 md:px-6 border-b border-black/10 dark:border-gold/20 relative overflow-hidden">
@@ -252,7 +255,7 @@ const App: React.FC = () => {
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-40">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-32 items-center">
           <div className="flex flex-col items-start">
-            <div className="badge mb-6">Empowerment for All</div>
+            <div className="badge mb-6">{t.accessibleFeatures}</div>
             <h2 className="text-3xl sm:text-5xl md:text-6xl font-black mb-10 uppercase tracking-tighter leading-[1] break-words">
               {t.mandatoryTitle}
             </h2>
@@ -272,9 +275,9 @@ const App: React.FC = () => {
             <div className="w-16 h-16 md:w-20 md:h-20 bg-gold text-maroon border border-black flex items-center justify-center text-3xl md:text-4xl mb-10 relative z-10">
               <i className="fas fa-hand-holding-dollar"></i>
             </div>
-            <h3 className="text-2xl md:text-3xl font-black mb-6 uppercase tracking-tighter leading-none relative z-10">Weekly Sustainability</h3>
+            <h3 className="text-2xl md:text-3xl font-black mb-6 uppercase tracking-tighter leading-none relative z-10">{t.weeklyAllowance}</h3>
             <p className="text-sm md:text-base text-gold/80 mb-12 max-w-sm font-bold uppercase leading-relaxed tracking-wider relative z-10">Automatic $200 weekly allowance for every verified user in the ecosystem.</p>
-            <div className="px-6 py-4 bg-gold text-maroon border border-black font-black text-[10px] uppercase tracking-[0.3em] relative z-10 w-full">Lifetime Guaranteed</div>
+            <div className="px-6 py-4 bg-gold text-maroon border border-black font-black text-[10px] uppercase tracking-[0.3em] relative z-10 w-full">{t.lifetimeGuarantee}</div>
           </div>
         </div>
       </section>
@@ -284,12 +287,12 @@ const App: React.FC = () => {
           <div className="mb-12 md:mb-20 flex flex-col md:row justify-between items-start md:items-end gap-10">
             <div>
               <div className="badge mb-4">Discovery</div>
-              <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none">Community <br className="hidden md:block"/> Leaders</h2>
+              <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none">{t.featuredCreators}</h2>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
             {creators.map(creator => (
-              <CreatorCard key={creator.id} creator={creator} onClick={handleCreatorClick} />
+              <CreatorCard key={creator.id} creator={creator} onClick={handleCreatorClick} language={language} />
             ))}
           </div>
         </div>
@@ -314,6 +317,11 @@ const App: React.FC = () => {
             <p className="text-xl md:text-2xl text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-relaxed max-w-3xl border-l-4 border-maroon dark:border-gold pl-6 md:pl-10">
               {t.fundDesc}
             </p>
+
+            <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
+               <h4 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4">{t.corporateSupport}</h4>
+               <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">{t.corporateSupportDesc}</p>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12">
               <div className="p-8 md:p-12 bg-white dark:bg-black border-premium">
@@ -377,7 +385,7 @@ const App: React.FC = () => {
               <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-10 border-b-2 border-black dark:border-gold pb-4">{t.supportEcosystem}</h3>
               
               <div className="grid grid-cols-4 gap-3 md:gap-4 mb-10">
-                 {[1, 2, 5, 10, 20, 50, 100].map(amount => (
+                 {standardAmounts.map(amount => (
                    <button 
                     key={amount}
                     onClick={() => { setPlatformDonationAmount(amount); setShowPlatformQR(false); }}
@@ -447,13 +455,13 @@ const App: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-20 md:py-32 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 mb-20">
         <div className="w-full">
-          <div className="badge mb-4">Command Center</div>
-          <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none break-words">Dashboard</h1>
+          <div className="badge mb-4">{t.commandCenter}</div>
+          <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none break-words">{t.dashboard}</h1>
         </div>
         <div className="flex flex-col items-end gap-3 w-full md:w-auto">
-           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Trust Index</span>
+           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.trustIndex}</span>
            <div className={`w-full md:w-auto px-8 py-4 border-premium text-[10px] font-black uppercase tracking-[0.2em] text-center ${user.verificationStatus === 'verified' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gold text-maroon border-black'}`}>
-             {user.verificationStatus === 'verified' ? <><i className="fas fa-check-circle mr-2"></i> Verified Identity</> : <><i className="fas fa-clock mr-2"></i> Pending Trust</>}
+             {user.verificationStatus === 'verified' ? <><i className="fas fa-check-circle mr-2"></i> {t.verifiedIdentity}</> : <><i className="fas fa-clock mr-2"></i> {t.pendingTrust}</>}
            </div>
         </div>
       </div>
@@ -477,13 +485,13 @@ const App: React.FC = () => {
             <div className="lg:col-span-8 space-y-10 md:space-y-16 animate-fade-in">
               <div className="bg-maroon text-gold p-10 md:p-16 border-premium flex flex-col md:flex-row justify-between items-center gap-10">
                 <div className="w-full">
-                  <span className="text-[11px] font-black uppercase tracking-[0.4em] block mb-6 opacity-70">Secured Reservoir</span>
+                  <span className="text-[11px] font-black uppercase tracking-[0.4em] block mb-6 opacity-70">{t.securedReservoir}</span>
                   <h3 className="text-5xl md:text-8xl font-black tracking-tighter leading-none break-all">{creatorBalance.toLocaleString()} <span className="text-xl md:text-3xl opacity-60">{activeCurrency.code}</span></h3>
                 </div>
-                <button className="w-full md:w-auto px-12 py-6 bg-gold text-maroon font-black uppercase tracking-[0.3em] text-[10px] border border-black transition-all btn-press">Initiate Payout</button>
+                <button className="w-full md:w-auto px-12 py-6 bg-gold text-maroon font-black uppercase tracking-[0.3em] text-[10px] border border-black transition-all btn-press">{t.initiatePayout}</button>
               </div>
               <div className="bg-white dark:bg-[#0A0A0A] border-premium p-8 md:p-12">
-                <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-12 border-b-2 border-black/5 pb-6">Network Intelligence</h4>
+                <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-12 border-b-2 border-black/5 pb-6">{t.networkIntelligence}</h4>
                 <div className="space-y-8">
                   {activities.map(activity => (
                     <div key={activity.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-8 p-6 md:p-8 bg-gray-50 dark:bg-black border border-black/5 dark:border-gold/10">
@@ -503,7 +511,7 @@ const App: React.FC = () => {
             
             <div className="lg:col-span-4 space-y-10 md:space-y-16">
               <div className="bg-white dark:bg-[#0A0A0A] border-premium p-8 md:p-12">
-                <h4 className="text-[11px] font-black uppercase tracking-[0.4em] mb-10">Linked Gates</h4>
+                <h4 className="text-[11px] font-black uppercase tracking-[0.4em] mb-10">{t.linkedGates}</h4>
                 <div className="space-y-5 mb-10">
                   {user.paymentMethods?.map(pm => (
                     <div key={pm.id} className="p-5 border border-black/10 dark:border-gold/30 bg-gray-50 dark:bg-black flex items-center justify-between gap-6">
@@ -514,20 +522,20 @@ const App: React.FC = () => {
                           <p className="text-[10px] font-bold text-gray-400 truncate opacity-60">{pm.provider} • {pm.accountNumber}</p>
                         </div>
                       </div>
-                      <button className="text-[9px] font-black text-maroon dark:text-gold uppercase hover:opacity-70 transition-opacity shrink-0">Edit</button>
+                      <button className="text-[9px] font-black text-maroon dark:text-gold uppercase hover:opacity-70 transition-opacity shrink-0">{t.remove}</button>
                     </div>
                   ))}
                 </div>
-                <button className="w-full py-6 border border-dashed border-black/30 dark:border-gold/40 font-black text-[9px] uppercase tracking-[0.2em] text-gray-400 hover:border-maroon hover:text-maroon dark:hover:border-gold dark:hover:text-gold transition-all">Connect New Gate</button>
+                <button className="w-full py-6 border border-dashed border-black/30 dark:border-gold/40 font-black text-[9px] uppercase tracking-[0.2em] text-gray-400 hover:border-maroon hover:text-maroon dark:hover:border-gold dark:hover:text-gold transition-all">{t.connectNewGate}</button>
               </div>
               
               <div className="bg-maroon/5 dark:bg-gold/5 p-10 border border-maroon/20 dark:border-gold/20">
-                <h4 className="text-[10px] font-black uppercase tracking-widest mb-6 text-maroon dark:text-gold">Sustainability Logic</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-widest mb-6 text-maroon dark:text-gold">{t.sustainabilityLogic}</h4>
                 <p className="text-[11px] font-medium text-gray-600 dark:text-gray-400 uppercase leading-relaxed tracking-wider mb-8">
                   Mandatory weekly livelihood credit ($200) initiates automatically every Monday at 00:00 UTC.
                 </p>
                 <div className="text-[9px] font-bold text-maroon/40 dark:text-gold/40 uppercase tracking-[0.3em] pt-6 border-t border-black/5 dark:border-gold/10">
-                   Auto-Clearance Enabled
+                   {t.autoClearanceEnabled}
                 </div>
               </div>
             </div>
@@ -537,8 +545,8 @@ const App: React.FC = () => {
         {dashTab === 'security' && (
           <div className="lg:col-span-12 max-w-2xl mx-auto w-full animate-fade-in">
             <div className="bg-white dark:bg-[#0A0A0A] border-premium p-10 md:p-16">
-              <h4 className="text-2xl font-black uppercase tracking-tighter mb-4">{t.securitySettings || 'Security Protocol'}</h4>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-12">{t.activityDesc || 'Update your authentication keys.'}</p>
+              <h4 className="text-2xl font-black uppercase tracking-tighter mb-4">{t.securityProtocol}</h4>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-12">{t.activityDesc}</p>
               
               <div className="space-y-12">
                 <div className="group">
@@ -606,10 +614,10 @@ const App: React.FC = () => {
         {dashTab === 'payouts' && (
           <div className="lg:col-span-12 animate-fade-in">
             <div className="bg-white dark:bg-[#0A0A0A] border-premium p-10 md:p-16">
-              <h4 className="text-2xl font-black uppercase tracking-tighter mb-12">Payout History</h4>
+              <h4 className="text-2xl font-black uppercase tracking-tighter mb-12">{t.payoutHistory}</h4>
               <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-black/5 dark:border-gold/10">
                 <i className="fas fa-receipt text-5xl text-gray-200 dark:text-zinc-800 mb-6"></i>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">No recent payout clearance found.</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">{t.noPayoutFound}</p>
               </div>
             </div>
           </div>
@@ -649,11 +657,11 @@ const App: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-8">
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Patrons</span>
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.patrons}</span>
                   <span className="text-xl font-black">{(selectedCreator.stats?.supporters || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Niche</span>
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.niche}</span>
                   <span className="text-xl font-black uppercase tracking-tighter">{selectedCreator.niche}</span>
                 </div>
               </div>
@@ -706,7 +714,7 @@ const App: React.FC = () => {
                   ))}
                   {(!selectedCreator.feed || selectedCreator.feed.length === 0) && (
                     <div className="py-24 text-center border-2 border-dashed border-black/5 dark:border-gold/10">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em]">Nothing found in the transmission.</p>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em]">{t.nothingFound}</p>
                     </div>
                   )}
                 </div>
@@ -715,18 +723,18 @@ const App: React.FC = () => {
               {profileTab === 'about' && (
                 <div className="space-y-12 animate-fade-in">
                   <div className="p-12 bg-white dark:bg-[#0A0A0A] border-premium">
-                    <h3 className="text-2xl font-black uppercase tracking-tighter mb-8 border-b-2 border-black/5 pb-6">Manifesto</h3>
+                    <h3 className="text-2xl font-black uppercase tracking-tighter mb-8 border-b-2 border-black/5 pb-6">{t.manifesto}</h3>
                     <p className="text-base text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight leading-relaxed">
                       {selectedCreator.bio}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-8">
                      <div className="p-10 bg-maroon text-gold border-premium">
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4 block">Total Raised</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4 block">{t.totalRaised}</span>
                         <div className="text-3xl font-black tracking-tighter">{selectedCreator.totalRaised.toLocaleString()} <span className="text-sm opacity-50">{selectedCreator.currency}</span></div>
                      </div>
                      <div className="p-10 bg-white dark:bg-black border-premium">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 block">Supporters</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 block">{t.supporters}</span>
                         <div className="text-3xl font-black tracking-tighter">{selectedCreator.stats?.supporters.toLocaleString()}</div>
                      </div>
                   </div>
@@ -742,6 +750,7 @@ const App: React.FC = () => {
                       currency={selectedCreator.currency} 
                       selected={selectedTierId === tier.id} 
                       onSelect={handleTierSelect} 
+                      language={language}
                     />
                   ))}
                 </div>
@@ -758,10 +767,10 @@ const App: React.FC = () => {
               )}
               
               <div className="bg-zinc-50 dark:bg-zinc-900/50 p-10 border border-black/10 dark:border-gold/20">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-8">Identity Clearance</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-8">{t.identityClearance}</h4>
                 <div className="flex items-center gap-5 p-5 bg-white dark:bg-black border border-black/5">
                    <div className={`w-3 h-3 rounded-full ${isVerified ? 'bg-green-500' : 'bg-gold'}`}></div>
-                   <span className="text-[9px] font-black uppercase tracking-widest">{isVerified ? 'Full Protocol Access' : 'Initial Trust Layer'}</span>
+                   <span className="text-[9px] font-black uppercase tracking-widest">{isVerified ? t.fullProtocolAccess : t.initialTrustLayer}</span>
                 </div>
               </div>
             </div>
@@ -785,9 +794,26 @@ const App: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 md:gap-32">
           <div className="lg:col-span-7">
-            <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter mb-16 leading-none break-words">Support <br/><span className="text-maroon dark:text-gold">{selectedCreator.name}</span></h1>
+            <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter mb-16 leading-none break-words">{t.supportNow} <br/><span className="text-maroon dark:text-gold">{selectedCreator.name}</span></h1>
             
             <div className="space-y-16">
+              {/* FIXED AMOUNTS */}
+              <div>
+                <div className="badge mb-8">{t.quickSelect}</div>
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-8">
+                  {standardAmounts.map(amt => (
+                    <button
+                      key={amt}
+                      onClick={() => { setDonationAmount(amt); setSelectedTierId(null); setShowQR(false); }}
+                      className={`py-4 border-premium font-black text-xs transition-all ${donationAmount === amt && !selectedTierId ? 'bg-maroon text-gold' : 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-900'}`}
+                    >
+                      {amt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* TIER SELECTION */}
               <div>
                 <div className="badge mb-8">{t.chooseTier}</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
@@ -798,11 +824,13 @@ const App: React.FC = () => {
                       currency={selectedCreator.currency} 
                       selected={selectedTierId === tier.id} 
                       onSelect={handleTierSelect} 
+                      language={language}
                     />
                   ))}
                 </div>
               </div>
 
+              {/* CUSTOM AMOUNT */}
               <div>
                 <div className="badge mb-8">{t.customAmount}</div>
                 <div className="relative">
@@ -816,17 +844,38 @@ const App: React.FC = () => {
                 </div>
               </div>
 
+              {/* DONOR TYPE TOGGLE */}
+              <div>
+                <div className="badge mb-8">{t.donorType}</div>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setDonorType('individual')}
+                    className={`flex-1 py-5 border-premium font-black text-[10px] uppercase tracking-widest transition-all ${donorType === 'individual' ? 'bg-maroon text-gold' : 'bg-white dark:bg-black'}`}
+                  >
+                    <i className="fas fa-user mr-2"></i> {t.individual}
+                  </button>
+                  <button 
+                    onClick={() => setDonorType('organization')}
+                    className={`flex-1 py-5 border-premium font-black text-[10px] uppercase tracking-widest transition-all ${donorType === 'organization' ? 'bg-maroon text-gold' : 'bg-white dark:bg-black'}`}
+                  >
+                    <i className="fas fa-building mr-2"></i> {t.organization}
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div>
                    <div className="badge mb-8">{t.donorDetails}</div>
-                   {!user.isLoggedIn ? (
+                   {!user.isLoggedIn || donorType === 'organization' ? (
                      <div className="group">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Display Name</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
+                          {donorType === 'individual' ? t.displayName : t.companyName}
+                        </label>
                         <input 
                           type="text"
                           value={donorName}
                           onChange={(e) => setDonorName(e.target.value)}
-                          placeholder="Anonymous"
+                          placeholder={donorType === 'individual' ? "Anonymous" : "Global Organization"}
                           className="w-full px-6 py-5 bg-white dark:bg-black border-premium outline-none font-black text-sm uppercase tracking-widest focus:border-maroon dark:focus:border-gold transition-all"
                         />
                      </div>
@@ -872,7 +921,7 @@ const App: React.FC = () => {
                   
                   {thankYouMessage && (
                     <div className="p-10 bg-maroon text-gold border-premium animate-slide-up">
-                       <h4 className="text-[10px] font-black uppercase tracking-[0.4em] mb-6 opacity-60">Message from {selectedCreator.name}</h4>
+                       <h4 className="text-[10px] font-black uppercase tracking-[0.4em] mb-6 opacity-60">{t.thanksFrom} {selectedCreator.name}</h4>
                        <p className="text-sm font-bold uppercase leading-relaxed tracking-tight italic">
                          "{thankYouMessage}"
                        </p>
@@ -881,7 +930,7 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 <div className="bg-white dark:bg-[#0A0A0A] border-premium p-10 md:p-14 text-center">
-                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em] mb-10">Donation Protocol</div>
+                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em] mb-10">{t.donationProtocol}</div>
                   <div className="text-4xl md:text-6xl font-black mb-12 tracking-tighter">
                     {donationAmount.toLocaleString()} <span className="text-maroon dark:text-gold">{selectedCreator.currency}</span>
                   </div>
@@ -890,7 +939,7 @@ const App: React.FC = () => {
                     disabled={isGenerating || donationAmount < 1}
                     className="w-full py-8 bg-black text-gold dark:bg-gold dark:text-black font-black uppercase tracking-[0.5em] text-[10px] border border-black hover:opacity-90 transition-all btn-press disabled:opacity-30"
                   >
-                    {isGenerating ? <><i className="fas fa-spinner fa-spin mr-3"></i> Processing</> : <><i className="fas fa-qrcode mr-3"></i> {t.confirmPay}</>}
+                    {isGenerating ? <><i className="fas fa-spinner fa-spin mr-3"></i> {t.processing}</> : <><i className="fas fa-qrcode mr-3"></i> {t.confirmPay}</>}
                   </button>
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-10 leading-loose">
                     {t.fundingDisclaimer}

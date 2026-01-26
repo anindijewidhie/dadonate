@@ -9,6 +9,7 @@ export interface AccessibilitySettings {
 }
 
 export type VerificationStatus = 'unverified' | 'pending' | 'verified';
+export type DonorType = 'individual' | 'organization';
 
 export interface User {
   name: string;
@@ -83,6 +84,7 @@ export interface Donation {
   id: string;
   creatorId: string;
   donorName: string;
+  donorType: DonorType;
   amount: number;
   currency: string;
   message: string;

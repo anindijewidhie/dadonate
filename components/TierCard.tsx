@@ -1,15 +1,18 @@
 
 import React from 'react';
-import { Tier } from '../types';
+import { Tier, Language } from '../types';
+import { TRANSLATIONS } from '../translations';
 
 interface TierCardProps {
   tier: Tier;
   currency: string;
   selected: boolean;
   onSelect: (tier: Tier) => void;
+  language: Language;
 }
 
-const TierCard: React.FC<TierCardProps> = ({ tier, currency, selected, onSelect }) => {
+const TierCard: React.FC<TierCardProps> = ({ tier, currency, selected, onSelect, language }) => {
+  const t = TRANSLATIONS[language];
   return (
     <div 
       className={`relative p-10 border-premium transition-all duration-300 cursor-pointer flex flex-col justify-between group ${
@@ -47,7 +50,7 @@ const TierCard: React.FC<TierCardProps> = ({ tier, currency, selected, onSelect 
           {selected && <i className="fas fa-check text-[10px]"></i>}
         </div>
         <span className="group-hover:opacity-100 opacity-70 transition-opacity uppercase">
-          {selected ? 'Selection Active' : 'Join Membership'}
+          {selected ? t.selectionActive : t.joinedMembership}
         </span>
       </div>
     </div>

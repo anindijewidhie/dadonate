@@ -1,21 +1,24 @@
 
 import React from 'react';
-import { Creator } from '../types';
+import { Creator, Language } from '../types';
+import { TRANSLATIONS } from '../translations';
 
 interface CreatorCardProps {
   creator: Creator;
   onClick: (creator: Creator) => void;
+  language: Language;
 }
 
-const CreatorCard: React.FC<CreatorCardProps> = ({ creator, onClick }) => {
+const CreatorCard: React.FC<CreatorCardProps> = ({ creator, onClick, language }) => {
+  const t = TRANSLATIONS[language];
   const isVerified = creator.verificationStatus === 'verified';
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     const shareUrl = `${window.location.origin}?creator=${creator.username}`;
     const shareData = {
-      title: `Support ${creator.name} on dadonate`,
-      text: `Empowering ${creator.name}'s journey. Support them on dadonate!`,
+      title: t.shareDataTitle.replace('{name}', creator.name),
+      text: t.shareDataText.replace('{name}', creator.name),
       url: shareUrl,
     };
 
@@ -27,7 +30,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, onClick }) => {
       });
     } else {
       navigator.clipboard.writeText(shareUrl).then(() => {
-        alert('Profile link copied to clipboard!');
+        alert(t.shareSuccess);
       }).catch(console.error);
     }
   };
@@ -54,7 +57,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, onClick }) => {
         <button 
           onClick={handleShare}
           className="absolute top-4 right-4 w-10 h-10 bg-white/90 dark:bg-black/90 border border-black/20 dark:border-gold/20 flex items-center justify-center text-maroon dark:text-gold hover:bg-maroon hover:text-gold dark:hover:bg-gold dark:hover:text-black transition-all z-10"
-          title="Share Profile"
+          title={t.shareProfile}
         >
           <i className="fas fa-share-nodes text-sm"></i>
         </button>
@@ -87,7 +90,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, onClick }) => {
         <div className="mt-auto pt-8 border-t border-black/5 dark:border-gold/10 flex flex-col sm:flex-row gap-6 justify-between items-center">
           <div className="flex gap-8 w-full sm:w-auto justify-between sm:justify-start">
             <div className="flex flex-col">
-              <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Patrons</span>
+              <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{t.patrons}</span>
               <span className="text-sm font-black">{(creator.stats?.supporters || 0).toLocaleString()}</span>
             </div>
             
@@ -95,15 +98,15 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, onClick }) => {
             <button 
               onClick={handleShare}
               className="flex items-center gap-3 text-[10px] font-black text-gray-400 hover:text-maroon dark:hover:text-gold transition-colors uppercase tracking-[0.2em]"
-              title="Share to Social Media"
+              title={t.shareProfile}
             >
               <i className="fas fa-share-alt text-xs"></i> 
-              <span>Share Profile</span>
+              <span>{t.shareProfile}</span>
             </button>
           </div>
           
           <button className="text-[10px] font-black text-maroon dark:text-gold uppercase tracking-[0.3em] group-hover:translate-x-2 transition-transform whitespace-nowrap">
-            Support Now →
+            {t.supportNow} →
           </button>
         </div>
       </div>

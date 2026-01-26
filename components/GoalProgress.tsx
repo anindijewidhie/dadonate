@@ -36,11 +36,11 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goal, currency, language })
       
       <div className="grid grid-cols-2 border border-black dark:border-gold">
         <div className="p-6 bg-white dark:bg-[#0A0A0A] border-r border-black dark:border-gold">
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Funded</span>
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">{t.funded}</span>
           <span className="text-2xl font-black text-maroon dark:text-gold tracking-tight">{goal.currentAmount.toLocaleString()} <span className="text-[10px] uppercase ml-1 opacity-50">{currency}</span></span>
         </div>
         <div className="p-6 bg-white dark:bg-[#0A0A0A] text-right">
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Target</span>
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">{t.target}</span>
           <span className="text-2xl font-black tracking-tight">{goal.targetAmount.toLocaleString()} <span className="text-[10px] uppercase ml-1 opacity-50">{currency}</span></span>
         </div>
       </div>
