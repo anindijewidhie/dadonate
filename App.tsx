@@ -301,7 +301,7 @@ const App: React.FC = () => {
   );
 
   const renderFundPlatform = () => {
-    const siteOwnerAccounts = "Bank Jago: 107863277869, PayPal: dhea_wasisto@yahoo.com, E-wallet: +628567239000";
+    const siteOwnerAccounts = "Bank Jago: 107863277869, PayPal: https://paypal.me/anindijewidhie, E-wallet: +628567239000";
 
     return (
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32 animate-fade-in pb-48 md:pb-64">
@@ -437,7 +437,7 @@ const App: React.FC = () => {
                   <button 
                     onClick={handleGeneratePlatformQR}
                     disabled={isGenerating || platformDonationAmount < 1}
-                    className="w-full py-6 md:py-8 bg-black text-gold dark:bg-gold dark:text-black font-black uppercase tracking-[0.4em] text-[10px] border-premium hover:opacity-90 transition-all btn-press disabled:opacity-30"
+                    className="w-full py-6 md:py-8 bg-black text-gold dark:bg-gold dark:text-black font-black uppercase tracking-[0.4em] text-[10px] border border-black hover:opacity-90 transition-all btn-press disabled:opacity-30"
                   >
                     {isGenerating ? <i className="fas fa-spinner fa-spin mr-3"></i> : <i className="fas fa-qrcode mr-3"></i>} 
                     Authorize Support
